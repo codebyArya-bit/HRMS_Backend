@@ -1,0 +1,554 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL") // Reads from your .env file
+}
+
+// ==========================================
+//          ---=== Models ===---
+// ==========================================
+
+// Model for all users (Admin, HR, Manager, Employee)
+model User {
+  id          Int      @id @default(autoincrement())
+  email       String   @unique
+  employeeId  String?  @unique
+  name        String
+  password    String
+  department  String?
+  avatar      String?  // URL for user avatar image
+  joinDate    DateTime @default(now())
+
+  // --- MODIFIED: Relation to the Role model ---
+  roleId      Int    // Foreign key
+  role        Role   @relation(fields: [roleId], references: [id]) // A user has one Role
+
+  // --- 2FA Fields ---
+  twoFactorEnabled    Boolean  @default(false)
+  twoFactorSecret     String?  // TOTP secret key
+  twoFactorMethod     String?  // 'app', 'sms', 'hardware', 'email'
+  backupCodes         String?  // JSON array of backup codes
+  twoFactorSetupDate  DateTime?
+  twoFactorLastUsed   DateTime?
+  phone               String?  // For SMS 2FA
+
+  // --- Other Relations ---
+  postedJobs        Job[]            @relation("PostedBy")
+  loginEvents       LoginActivity[]
+  auditLogs         AuditLog[]
+  uploadedDocuments Document[]       @relation("DocumentUploadedBy")
+  documentFavorites DocumentFavorite[]
+  documentDownloads DocumentDownload[]
+  importJobs        ImportJob[]      @relation("ImportedByUser")
+  exportJobs        ExportJob[]      @relation("ExportedByUser")
+  twoFactorDevices  TwoFactorDevice[]
+  eventRegistrations EventRegistration[]
+  leaveRequests     LeaveRequest[]
+  interviewsAsInterviewer Interview[] @relation("InterviewerRelation")
+  interviewsScheduled     Interview[] @relation("ScheduledByRelation")
+  
+  // --- AI Analytics Relations ---
+  performanceInsights PerformanceInsight[]
+  employeeFeedback    EmployeeFeedback[]
+}
+
+// Model for Leave Requests
+model LeaveRequest {
+  id          Int      @id @default(autoincrement())
+  startDate   DateTime
+  endDate     DateTime
+  reason      String
+  leaveType   LeaveType @default(ANNUAL)
+  status      LeaveStatus @default(PENDING)
+  comments    String?
+  managerComments String?
+  appliedAt   DateTime @default(now())
+  reviewedAt  DateTime?
+  
+  // Relations
+  employee    User     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId  Int
+
+  @@map("leave_requests")
+}
+
+// Model for Events
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  location    String?
+  startDate   DateTime
+  endDate     DateTime?
+  maxCapacity Int?
+  status      EventStatus @default(OPEN)
+  organizer   String
+  image       String?
+  tags        String?  // JSON array of tags
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  registrations EventRegistration[]
+
+  @@map("events")
+}
+
+// Model for Event Registrations
+model EventRegistration {
+  id           Int      @id @default(autoincrement())
+  registeredAt DateTime @default(now())
+  status       RegistrationStatus @default(REGISTERED)
+  
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       Int
+  event        Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId      Int
+
+  @@unique([userId, eventId])
+  @@map("event_registrations")
+}
+
+// --- 2FA Device Model ---
+model TwoFactorDevice {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceName  String
+  deviceType  String   // 'mobile', 'tablet', 'hardware'
+  lastUsed    DateTime?
+  createdAt   DateTime @default(now())
+  isActive    Boolean  @default(true)
+
+  @@map("two_factor_devices")
+}
+
+// --- NEW: Role Model (replaces Role enum) ---
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  color       String?  @default("gray")
+  createdAt   DateTime @default(now())
+  status      String   @default("active")
+
+  // --- Relations ---
+  users       User[] // A role can have many users
+  permissions Permission[] @relation(name: "RolePermissions") // Many-to-many with Permission
+
+  @@map("roles")
+}
+
+// --- NEW: Permission Model ---
+model Permission {
+  id          String   @id // e.g., "manage_users"
+  name        String   // e.g., "User Management"
+  category    String   // e.g., "Users"
+  description String?
+
+  // --- Relations ---
+  roles       Role[]   @relation(name: "RolePermissions") // Many-to-many with Role
+
+  @@map("permissions")
+}
+
+// Model for Job Listings
+model Job {
+  id              Int      @id @default(autoincrement())
+  title           String
+  department      String
+  status          JobStatus @default(OPEN)
+  openings        Int      @default(1)
+  datePosted      DateTime @default(now())
+  jobDescription  String?
+  requirements    String?
+
+  // --- Relations ---
+  postedBy        User     @relation("PostedBy", fields: [postedById], references: [id], onDelete: Cascade)
+  postedById      Int
+  applicants      Candidate[]
+}
+
+// Model for Job Applicants
+model Candidate {
+  id              Int      @id @default(autoincrement())
+  name            String
+  email           String   @unique
+  phone           String?
+  dateApplied     DateTime @default(now())
+  status          CandidateStatus @default(NEW)
+  dateHired       DateTime?
+
+  // --- Relations ---
+  appliedFor      Job      @relation(fields: [appliedForJobId], references: [id], onDelete: Cascade)
+  appliedForJobId Int
+  interviews      Interview[]
+}
+
+// Model for Interview Scheduling
+model Interview {
+  id              Int      @id @default(autoincrement())
+  title           String
+  scheduledDate   DateTime
+  duration        Int      @default(60) // Duration in minutes
+  type            String   @default("TECHNICAL") // TECHNICAL, HR, BEHAVIORAL, FINAL
+  status          String   @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED, RESCHEDULED
+  location        String?  // Can be room number or video link
+  notes           String?
+  feedback        String?
+  rating          Int?     // 1-10 rating
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // --- Relations ---
+  candidate       Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  candidateId     Int
+  interviewer     User     @relation("InterviewerRelation", fields: [interviewerId], references: [id], onDelete: Cascade)
+  interviewerId   Int
+  scheduledBy     User     @relation("ScheduledByRelation", fields: [scheduledById], references: [id], onDelete: Cascade)
+  scheduledById   Int
+
+  @@map("interviews")
+}
+
+// Model to track user login activity
+model LoginActivity {
+  id        Int      @id @default(autoincrement())
+  timestamp DateTime @default(now())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activity  String   @default("User logged in")
+
+  @@index([timestamp])
+  @@index([userId])
+  @@map("login_activity")
+}
+
+// Model for audit logs
+model AuditLog {
+  id          Int      @id @default(autoincrement())
+  timestamp   DateTime @default(now())
+  userId      Int?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action      String
+  category    String
+  resource    String?
+  resourceId  String?
+  severity    String   @default("info") // info, warning, error, critical
+  status      String   @default("success") // success, failed, pending
+  ipAddress   String?
+  userAgent   String?
+  details     String?  // JSON string for additional details
+  description String?
+
+  @@index([timestamp])
+  @@index([userId])
+  @@index([category])
+  @@index([severity])
+  @@index([status])
+  @@map("audit_logs")
+}
+
+// Model for Document Categories
+model DocumentCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  icon        String?
+  color       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  documents   Document[]
+
+  @@map("document_categories")
+}
+
+// Model for Documents
+model Document {
+  id            Int      @id @default(autoincrement())
+  title         String
+  description   String?
+  fileName      String
+  filePath      String
+  fileSize      Int
+  mimeType      String
+  format        String
+  isRequired    Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  tags          String?
+  version       String   @default("1.0")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // --- Relations ---
+  category      DocumentCategory @relation(fields: [categoryId], references: [id])
+  categoryId    Int
+  uploadedBy    User     @relation("DocumentUploadedBy", fields: [uploadedById], references: [id], onDelete: Cascade)
+  uploadedById  Int
+  favorites     DocumentFavorite[]
+  downloads     DocumentDownload[]
+
+  @@map("documents")
+}
+
+// Model for User Document Favorites
+model DocumentFavorite {
+  id         Int      @id @default(autoincrement())
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     Int
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId Int
+
+  @@unique([userId, documentId])
+  @@map("document_favorites")
+}
+
+// Model for Document Download Tracking
+model DocumentDownload {
+  id           Int      @id @default(autoincrement())
+  downloadedAt DateTime @default(now())
+  ipAddress    String?
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       Int
+  document     Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  documentId   Int
+
+  @@map("document_downloads")
+}
+
+// Model for Bulk Import History
+model ImportJob {
+  id                Int      @id @default(autoincrement())
+  fileName          String
+  createdAt         DateTime @default(now())
+  totalRecords      Int
+  successfulRecords Int
+  failedRecords     Int
+  errorsJson        String?
+  importedBy        User     @relation("ImportedByUser", fields: [importedById], references: [id])
+  importedById      Int
+
+  @@map("import_jobs")
+}
+
+// Model for Bulk Export History
+model ExportJob {
+  id           Int      @id @default(autoincrement())
+  fileName     String
+  createdAt    DateTime @default(now())
+  format       String
+  records      Int
+  filtersJson  String?
+  exportedBy   User     @relation("ExportedByUser", fields: [exportedById], references: [id])
+  exportedById Int
+
+  @@map("export_jobs")
+}
+
+// ==========================================
+//        ---=== AI Analytics Models ===---
+// ==========================================
+
+// Model for AI Performance Insights
+model PerformanceInsight {
+  id                    Int      @id @default(autoincrement())
+  employeeId            Int
+  employee              User     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  // Performance Metrics
+  performanceScore      Float?
+  productivityRating    Float?
+  qualityRating         Float?
+  collaborationRating   Float?
+  
+  // AI Analysis Results
+  performanceForecast   String?  // JSON string with forecast data
+  riskFactors          String?  // JSON array of risk factors
+  recommendations      String?  // JSON array of recommendations
+  strengths            String?  // JSON array of strengths
+  improvementAreas     String?  // JSON array of improvement areas
+  
+  // Metadata
+  analysisDate         DateTime @default(now())
+  analysisType         String   @default("monthly") // monthly, quarterly, annual
+  confidence           Float?   // AI confidence score (0-1)
+  dataSource           String?  // Source of performance data
+  
+  // Predictions
+  nextQuarterForecast  String?  // JSON with predictions
+  careerProgression    String?  // JSON with career recommendations
+  
+  @@index([employeeId])
+  @@index([analysisDate])
+  @@map("performance_insights")
+}
+
+// Model for Employee Feedback (for sentiment analysis)
+model EmployeeFeedback {
+  id              Int      @id @default(autoincrement())
+  employeeId      Int
+  employee        User     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  
+  // Feedback Content
+  feedbackText    String
+  feedbackType    String   @default("general") // general, performance, training, culture
+  source          String?  // survey, 1on1, anonymous, exit_interview
+  category        String?  // workload, management, culture, growth, etc.
+  
+  // Context
+  submittedAt     DateTime @default(now())
+  isAnonymous     Boolean  @default(false)
+  department      String?
+  
+  // Relations
+  sentimentAnalysis SentimentAnalysis[]
+  
+  @@index([employeeId])
+  @@index([submittedAt])
+  @@index([feedbackType])
+  @@map("employee_feedback")
+}
+
+// Model for AI Sentiment Analysis Results
+model SentimentAnalysis {
+  id                  Int      @id @default(autoincrement())
+  feedbackId          Int
+  feedback            EmployeeFeedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  
+  // Sentiment Scores
+  overallSentiment    String   // positive, negative, neutral
+  sentimentScore      Float    // -1 to 1 scale
+  confidence          Float    // 0 to 1 confidence level
+  
+  // Emotional Breakdown
+  emotions            String?  // JSON object with emotion scores
+  keyThemes           String?  // JSON array of identified themes
+  concerns            String?  // JSON array of concerns
+  positiveAspects     String?  // JSON array of positive aspects
+  
+  // AI Insights
+  actionableInsights  String?  // JSON array of recommendations
+  urgencyLevel        String   @default("low") // low, medium, high
+  riskIndicators      String?  // JSON array of risk factors
+  
+  // Metadata
+  analyzedAt          DateTime @default(now())
+  aiModel             String   @default("gemini-2.5-pro")
+  processingTime      Int?     // milliseconds
+  
+  @@index([feedbackId])
+  @@index([analyzedAt])
+  @@index([overallSentiment])
+  @@index([urgencyLevel])
+  @@map("sentiment_analysis")
+}
+
+// Model for Department Sentiment Trends
+model SentimentTrend {
+  id                    Int      @id @default(autoincrement())
+  department            String
+  timeframe             String   @default("monthly") // daily, weekly, monthly, quarterly
+  
+  // Trend Metrics
+  averageSentiment      Float
+  positivePercentage    Float
+  neutralPercentage     Float
+  negativePercentage    Float
+  
+  // Trend Analysis
+  trendDirection        String   // improving, declining, stable
+  riskFactors          String?  // JSON array of identified risks
+  recommendations      String?  // JSON array of recommendations
+  keyInsights          String?  // JSON array of insights
+  
+  // Alert System
+  alertLevel           String   @default("green") // green, yellow, red
+  alertMessage         String?
+  
+  // Metadata
+  periodStart          DateTime
+  periodEnd            DateTime
+  generatedAt          DateTime @default(now())
+  feedbackCount        Int      @default(0)
+  
+  @@index([department])
+  @@index([periodStart])
+  @@index([alertLevel])
+  @@map("sentiment_trends")
+}
+
+// Model for AI Analytics Configuration
+model AIAnalyticsConfig {
+  id                   Int      @id @default(autoincrement())
+  configKey            String   @unique
+  configValue          String   // JSON string for complex configurations
+  description          String?
+  isActive             Boolean  @default(true)
+  updatedAt            DateTime @updatedAt
+  updatedBy            Int?
+  
+  @@map("ai_analytics_config")
+}
+
+
+// ==========================================
+//            ---=== Enums ===---
+// ==========================================
+
+// --- DELETED: The Role enum is replaced by the Role model ---
+// enum Role { ... }
+
+enum JobStatus {
+  OPEN
+  CLOSED
+  ARCHIVED
+}
+
+enum CandidateStatus {
+  NEW
+  SCREENING
+  INTERVIEW
+  OFFERED
+  HIRED
+  REJECTED
+}
+
+enum EventStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+  FULL
+}
+
+enum RegistrationStatus {
+  REGISTERED
+  WAITLISTED
+  CANCELLED
+  ATTENDED
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  PERSONAL
+  MATERNITY
+  PATERNITY
+  EMERGENCY
+  UNPAID
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
