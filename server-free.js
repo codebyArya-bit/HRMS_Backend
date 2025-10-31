@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
+import { promisify } from "util";
+import { exec } from "child_process";
 import authRoutes from "./routes/authRoutes.js";
 import jobRoutes from "./routes/jobRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
@@ -22,6 +24,9 @@ import hiringWorkflowRoutes from "./routes/hiringWorkflowRoutes.js";
 import departmentRoutes from "./routes/departmentRoutes.js";
 
 dotenv.config();
+
+// Create async version of exec
+const execAsync = promisify(exec);
 
 // Initialize Prisma with in-memory database for Free plan
 const prisma = new PrismaClient({
