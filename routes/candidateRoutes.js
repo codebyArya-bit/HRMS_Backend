@@ -15,7 +15,7 @@ router.get('/', authMiddleware, isAdminOrHR, async (req, res) => {
     if (status) whereClause.status = status;
     if (jobId) whereClause.appliedForJobId = parseInt(jobId);
 
-    const candidates = await prisma.candidate.findMany({
+    const candidates = await prisma.Candidate.findMany({
       where: whereClause,
       include: {
         appliedFor: {
@@ -40,7 +40,7 @@ router.get('/', authMiddleware, isAdminOrHR, async (req, res) => {
       location: 'Remote'
     }));
 
-    const totalCount = await prisma.candidate.count({ where: whereClause });
+    const totalCount = await prisma.Candidate.count({ where: whereClause });
 
     res.json({
       candidates: candidatesWithScores,
@@ -58,7 +58,7 @@ router.get('/:id', authMiddleware, isAdminOrHR, async (req, res) => {
   try {
     const { id } = req.params;
     
-    const candidate = await prisma.candidate.findUnique({
+    const candidate = await prisma.Candidate.findUnique({
       where: { id: parseInt(id) },
       include: {
         appliedFor: {
@@ -102,7 +102,7 @@ router.post('/', async (req, res) => {
     const { name, email, phone, appliedForJobId } = req.body;
 
     // Check if job exists
-    const job = await prisma.job.findUnique({
+    const job = await prisma.Job.findUnique({
       where: { id: parseInt(appliedForJobId) }
     });
 
@@ -111,7 +111,7 @@ router.post('/', async (req, res) => {
     }
 
     // Check if candidate already applied for this job
-    const existingApplication = await prisma.candidate.findFirst({
+    const existingApplication = await prisma.Candidate.findFirst({
       where: {
         email: email,
         appliedForJobId: parseInt(appliedForJobId)
@@ -122,7 +122,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Candidate has already applied for this job' });
     }
 
-    const candidate = await prisma.candidate.create({
+    const candidate = await prisma.Candidate.create({
       data: {
         name,
         email,
@@ -159,7 +159,7 @@ router.patch('/:id/status', authMiddleware, isAdminOrHR, async (req, res) => {
       updateData.dateHired = new Date(dateHired);
     }
 
-    const candidate = await prisma.candidate.update({
+    const candidate = await prisma.Candidate.update({
       where: { id: parseInt(id) },
       data: updateData,
       include: {
@@ -190,15 +190,15 @@ router.get('/stats/overview', authMiddleware, isAdminOrHR, async (req, res) => {
       hiredCandidates,
       rejectedCandidates
     ] = await Promise.all([
-      prisma.candidate.count(),
-      prisma.candidate.count({ where: { status: 'NEW' } }),
-      prisma.candidate.count({ where: { status: 'INTERVIEWING' } }),
-      prisma.candidate.count({ where: { status: 'HIRED' } }),
-      prisma.candidate.count({ where: { status: 'REJECTED' } })
+      prisma.Candidate.count(),
+      prisma.Candidate.count({ where: { status: 'NEW' } }),
+      prisma.Candidate.count({ where: { status: 'INTERVIEWING' } }),
+      prisma.Candidate.count({ where: { status: 'HIRED' } }),
+      prisma.Candidate.count({ where: { status: 'REJECTED' } })
     ]);
 
     // Get recent candidates (last 7 days)
-    const recentCandidates = await prisma.candidate.count({
+    const recentCandidates = await prisma.Candidate.count({
       where: {
         dateApplied: {
           gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
@@ -226,7 +226,7 @@ router.delete('/:id', authMiddleware, isAdminOrHR, async (req, res) => {
   try {
     const { id } = req.params;
     
-    await prisma.candidate.delete({
+    await prisma.Candidate.delete({
       where: { id: parseInt(id) }
     });
 

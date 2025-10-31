@@ -54,7 +54,7 @@ export const hasPermission = (requiredPermissions, requireAll = true) => {
       
       if (!userPermissions || Date.now() - userPermissions.timestamp > CACHE_TTL) {
         // Fetch user with role and permissions
-        const user = await prisma.user.findUnique({
+        const user = await prisma.User.findUnique({
           where: { id: userId },
           include: {
             role: {

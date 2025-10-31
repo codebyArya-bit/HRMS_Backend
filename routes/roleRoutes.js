@@ -13,7 +13,7 @@ const router = express.Router();
 // GET /api/roles - Get all roles with permissions
 router.get("/", authMiddleware, isAdminOrHR, async (req, res) => {
   try {
-    const roles = await prisma.role.findMany({
+    const roles = await prisma.Role.findMany({
       include: {
         permissions: true, // Include all permission fields
         users: {
@@ -65,7 +65,7 @@ router.post("/revert/:auditLogId", authMiddleware, isAdmin, async (req, res) => 
     }
 
     // Get the audit log entry
-    const auditLog = await prisma.auditLog.findUnique({
+    const auditLog = await prisma.AuditLog.findUnique({
       where: { id: parseInt(auditLogId) },
       include: {
         user: {
@@ -104,7 +104,7 @@ router.post("/revert/:auditLogId", authMiddleware, isAdmin, async (req, res) => 
     switch (auditLog.action) {
       case 'CREATE_ROLE':
         // Revert role creation by deleting the role
-        const roleToDelete = await prisma.role.findUnique({
+        const roleToDelete = await prisma.Role.findUnique({
           where: { id: roleId },
           include: {
             _count: {
@@ -123,7 +123,7 @@ router.post("/revert/:auditLogId", authMiddleware, isAdmin, async (req, res) => 
           });
         }
 
-        await prisma.role.delete({
+        await prisma.Role.delete({
           where: { id: roleId }
         });
 
@@ -160,7 +160,7 @@ router.post("/revert/:auditLogId", authMiddleware, isAdmin, async (req, res) => 
           return res.status(400).json({ error: "No change details found in audit log" });
         }
 
-        const roleToUpdate = await prisma.role.findUnique({
+        const roleToUpdate = await prisma.Role.findUnique({
           where: { id: roleId }
         });
 
@@ -196,7 +196,7 @@ router.post("/revert/:auditLogId", authMiddleware, isAdmin, async (req, res) => 
           };
         }
 
-        const revertedRole = await prisma.role.update({
+        const revertedRole = await prisma.Role.update({
           where: { id: roleId },
           data: updateData,
           include: {
@@ -263,7 +263,7 @@ router.post("/revert/:auditLogId", authMiddleware, isAdmin, async (req, res) => 
         }
 
         // Check if a role with the same name already exists
-        const existingRoleWithName = await prisma.role.findUnique({
+        const existingRoleWithName = await prisma.Role.findUnique({
           where: { name: details.roleName }
         });
 
@@ -273,7 +273,7 @@ router.post("/revert/:auditLogId", authMiddleware, isAdmin, async (req, res) => 
           });
         }
 
-        const recreatedRole = await prisma.role.create({
+        const recreatedRole = await prisma.Role.create({
           data: {
             name: details.roleName,
             description: details.description || '',
@@ -359,7 +359,7 @@ router.get("/history/:roleId", authMiddleware, isAdmin, async (req, res) => {
 
     // Get audit logs for this specific role
     const [auditLogs, total] = await Promise.all([
-      prisma.auditLog.findMany({
+      prisma.AuditLog.findMany({
         where: {
           category: 'ROLE_MANAGEMENT',
           resourceId: roleId.toString()
@@ -380,7 +380,7 @@ router.get("/history/:roleId", authMiddleware, isAdmin, async (req, res) => {
         skip,
         take
       }),
-      prisma.auditLog.count({
+      prisma.AuditLog.count({
         where: {
           category: 'ROLE_MANAGEMENT',
           resourceId: roleId.toString()
@@ -449,7 +449,7 @@ router.get("/audit-logs", authMiddleware, isAdmin, async (req, res) => {
     }
 
     const [auditLogs, total] = await Promise.all([
-      prisma.auditLog.findMany({
+      prisma.AuditLog.findMany({
         where,
         include: {
           user: {
@@ -467,7 +467,7 @@ router.get("/audit-logs", authMiddleware, isAdmin, async (req, res) => {
         skip,
         take
       }),
-      prisma.auditLog.count({ where })
+      prisma.AuditLog.count({ where })
     ]);
 
     // Format the audit logs
@@ -514,7 +514,7 @@ router.get("/audit-logs", authMiddleware, isAdmin, async (req, res) => {
 // --- Legacy Roles List (keeping for backward compatibility) ---
 router.get("/roles", authMiddleware, isAdminOrHR, async (req, res) => {
   try {
-    const roles = await prisma.role.findMany({
+    const roles = await prisma.Role.findMany({
       include: {
         _count: { select: { users: true } },
         permissions: { 
@@ -543,7 +543,7 @@ router.get("/:id", authMiddleware, isAdminOrHR, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const role = await prisma.role.findUnique({
+    const role = await prisma.Role.findUnique({
       where: { id: parseInt(id) },
       include: {
         permissions: {
@@ -599,7 +599,7 @@ router.post("/", authMiddleware, isAdmin, async (req, res) => {
     }
 
     // Check if role already exists
-    const existingRole = await prisma.role.findUnique({
+    const existingRole = await prisma.Role.findUnique({
       where: { name }
     });
 
@@ -609,7 +609,7 @@ router.post("/", authMiddleware, isAdmin, async (req, res) => {
 
     // Verify all permission IDs exist
     if (permissionIds.length > 0) {
-      const permissions = await prisma.permission.findMany({
+      const permissions = await prisma.Permission.findMany({
         where: {
           id: {
             in: permissionIds // Permission IDs are strings, no need to parseInt
@@ -624,7 +624,7 @@ router.post("/", authMiddleware, isAdmin, async (req, res) => {
 
     // Verify all user IDs exist
     if (userIds.length > 0) {
-      const users = await prisma.user.findMany({
+      const users = await prisma.User.findMany({
         where: {
           id: {
             in: userIds.map(id => parseInt(id))
@@ -638,7 +638,7 @@ router.post("/", authMiddleware, isAdmin, async (req, res) => {
     }
 
     // Create role with permissions and users
-    const newRole = await prisma.role.create({
+    const newRole = await prisma.Role.create({
       data: {
         name,
         description,
@@ -728,7 +728,7 @@ router.put("/:id", authMiddleware, isAdmin, async (req, res) => {
     }
 
     // Check if role exists and get current state for audit logging
-    const existingRole = await prisma.role.findUnique({
+    const existingRole = await prisma.Role.findUnique({
       where: { id: parseInt(id) },
       include: {
         permissions: {
@@ -751,7 +751,7 @@ router.put("/:id", authMiddleware, isAdmin, async (req, res) => {
     }
 
     // Check if name is taken by another role
-    const roleWithSameName = await prisma.role.findFirst({
+    const roleWithSameName = await prisma.Role.findFirst({
       where: { 
         name,
         id: { not: parseInt(id) }
@@ -764,7 +764,7 @@ router.put("/:id", authMiddleware, isAdmin, async (req, res) => {
 
     // Verify all permission IDs exist
     if (permissionIds.length > 0) {
-      const permissions = await prisma.permission.findMany({
+      const permissions = await prisma.Permission.findMany({
         where: {
           id: {
             in: permissionIds // Permission IDs are strings
@@ -779,7 +779,7 @@ router.put("/:id", authMiddleware, isAdmin, async (req, res) => {
 
     // Verify all user IDs exist
     if (userIds.length > 0) {
-      const users = await prisma.user.findMany({
+      const users = await prisma.User.findMany({
         where: {
           id: {
             in: userIds.map(id => parseInt(id))
@@ -793,7 +793,7 @@ router.put("/:id", authMiddleware, isAdmin, async (req, res) => {
     }
 
     // Update role with permissions and users
-    const updatedRole = await prisma.role.update({
+    const updatedRole = await prisma.Role.update({
       where: { id: parseInt(id) },
       data: {
         name,
@@ -905,7 +905,7 @@ router.delete("/:id", authMiddleware, isAdmin, async (req, res) => {
     const { id } = req.params;
 
     // Check if role exists and get details for audit logging
-    const existingRole = await prisma.role.findUnique({
+    const existingRole = await prisma.Role.findUnique({
       where: { id: parseInt(id) },
       include: {
         permissions: {
@@ -934,7 +934,7 @@ router.delete("/:id", authMiddleware, isAdmin, async (req, res) => {
     }
 
     // Delete the role (permissions will be automatically disconnected due to the relation)
-    await prisma.role.delete({
+    await prisma.Role.delete({
       where: { id: parseInt(id) }
     });
 
@@ -971,7 +971,7 @@ router.delete("/:id", authMiddleware, isAdmin, async (req, res) => {
 router.get("/stats/overview", authMiddleware, isAdminOrHR, async (req, res) => {
   try {
     // Get role distribution
-    const roleStats = await prisma.role.findMany({
+    const roleStats = await prisma.Role.findMany({
       include: {
         _count: {
           select: {
@@ -985,8 +985,8 @@ router.get("/stats/overview", authMiddleware, isAdminOrHR, async (req, res) => {
     });
 
     // Get total roles and permissions
-    const totalRoles = await prisma.role.count();
-    const totalPermissions = await prisma.permission.count();
+    const totalRoles = await prisma.Role.count();
+    const totalPermissions = await prisma.Permission.count();
 
     // Get most assigned role
     const mostAssignedRole = roleStats.reduce((max, role) => 
@@ -1020,7 +1020,7 @@ router.get("/stats/overview", authMiddleware, isAdminOrHR, async (req, res) => {
 // --- Permissions List ---
 router.get("/permissions", authMiddleware, isAdminOrHR, async (req, res) => {
   try {
-    const permissions = await prisma.permission.findMany({
+    const permissions = await prisma.Permission.findMany({
       include: {
         _count: {
           select: {

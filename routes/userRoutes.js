@@ -44,7 +44,7 @@ router.get("/", authMiddleware, hasPermission("manage_users"), async (req, res) 
     };
 
     // Get users with role information
-    const users = await prisma.user.findMany({
+    const users = await prisma.User.findMany({
       where,
       include: {
         role: {
@@ -68,7 +68,7 @@ router.get("/", authMiddleware, hasPermission("manage_users"), async (req, res) 
     });
 
     // Get total count for pagination
-    const totalUsers = await prisma.user.count({ where });
+    const totalUsers = await prisma.User.count({ where });
 
     // Remove sensitive data for non-admin users
     const sanitizedUsers = users.map(user => {
@@ -112,7 +112,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
       return res.status(403).json({ error: "Access denied" });
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { id: parseInt(id) },
       include: {
         role: {
@@ -167,7 +167,7 @@ router.post("/", authMiddleware, hasPermission("manage_users"), async (req, res)
     }
 
     // Check if user already exists
-    const existingUser = await prisma.user.findFirst({
+    const existingUser = await prisma.User.findFirst({
       where: {
         OR: [
           { email },
@@ -183,7 +183,7 @@ router.post("/", authMiddleware, hasPermission("manage_users"), async (req, res)
     }
 
     // Verify role exists
-    const role = await prisma.role.findUnique({
+    const role = await prisma.Role.findUnique({
       where: { id: parseInt(roleId) }
     });
 
@@ -195,7 +195,7 @@ router.post("/", authMiddleware, hasPermission("manage_users"), async (req, res)
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create user
-    const newUser = await prisma.user.create({
+    const newUser = await prisma.User.create({
       data: {
         name,
         email,
@@ -243,7 +243,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
     }
 
     // Check if user exists
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.User.findUnique({
       where: { id: parseInt(id) }
     });
 
@@ -275,7 +275,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
 
     // Special handling for roleId
     if (filteredUpdateData.roleId) {
-      const role = await prisma.role.findUnique({
+      const role = await prisma.Role.findUnique({
         where: { id: parseInt(filteredUpdateData.roleId) }
       });
       if (!role) {
@@ -286,7 +286,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
 
     // Check for email uniqueness if updating email
     if (filteredUpdateData.email && filteredUpdateData.email !== existingUser.email) {
-      const emailExists = await prisma.user.findUnique({
+      const emailExists = await prisma.User.findUnique({
         where: { email: filteredUpdateData.email }
       });
       if (emailExists) {
@@ -295,7 +295,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
     }
 
     // Update user
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.User.update({
       where: { id: parseInt(id) },
       data: filteredUpdateData,
       include: {
@@ -333,7 +333,7 @@ router.delete("/:id", authMiddleware, isAdmin, async (req, res) => {
     }
 
     // Check if user exists
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { id: parseInt(id) }
     });
 
@@ -342,7 +342,7 @@ router.delete("/:id", authMiddleware, isAdmin, async (req, res) => {
     }
 
     // Delete user
-    await prisma.user.delete({
+    await prisma.User.delete({
       where: { id: parseInt(id) }
     });
 
@@ -374,7 +374,7 @@ router.put("/:id/password", authMiddleware, async (req, res) => {
     }
 
     // Get user
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { id: parseInt(id) }
     });
 
@@ -398,7 +398,7 @@ router.put("/:id/password", authMiddleware, async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Update password
-    await prisma.user.update({
+    await prisma.User.update({
       where: { id: parseInt(id) },
       data: { password: hashedPassword }
     });
@@ -414,12 +414,12 @@ router.put("/:id/password", authMiddleware, async (req, res) => {
 router.get("/stats/overview", authMiddleware, hasPermission("manage_users"), async (req, res) => {
   try {
     // Get basic counts
-    const totalUsers = await prisma.user.count();
+    const totalUsers = await prisma.User.count();
     const activeUsers = totalUsers; // All users in database are considered active
     const inactiveUsers = 0; // No inactive status tracking
 
     // Get department breakdown
-    const departmentStats = await prisma.user.groupBy({
+    const departmentStats = await prisma.User.groupBy({
       by: ["department"],
       _count: {
         id: true
@@ -432,7 +432,7 @@ router.get("/stats/overview", authMiddleware, hasPermission("manage_users"), asy
     });
 
     // Get role breakdown
-    const roleStats = await prisma.user.groupBy({
+    const roleStats = await prisma.User.groupBy({
       by: ["roleId"],
       _count: {
         id: true
@@ -440,7 +440,7 @@ router.get("/stats/overview", authMiddleware, hasPermission("manage_users"), asy
     });
 
     // Get role names separately
-    const roleNames = await prisma.role.findMany({
+    const roleNames = await prisma.Role.findMany({
       select: {
         id: true,
         name: true
@@ -461,7 +461,7 @@ router.get("/stats/overview", authMiddleware, hasPermission("manage_users"), asy
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const recentHires = await prisma.user.count({
+    const recentHires = await prisma.User.count({
       where: {
         createdAt: {
           gte: thirtyDaysAgo

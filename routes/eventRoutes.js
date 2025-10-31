@@ -15,7 +15,7 @@ router.get('/', authMiddleware, async (req, res) => {
       whereClause.status = status;
     }
 
-    const events = await prisma.event.findMany({
+    const events = await prisma.Event.findMany({
       where: whereClause,
       include: {
         registrations: {
@@ -65,7 +65,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const event = await prisma.event.findUnique({
+    const event = await prisma.Event.findUnique({
       where: { id: parseInt(id) },
       include: {
         registrations: {
@@ -123,7 +123,7 @@ router.post('/:id/register', authMiddleware, async (req, res) => {
     const userId = req.user.id;
 
     // Check if event exists
-    const event = await prisma.event.findUnique({
+    const event = await prisma.Event.findUnique({
       where: { id: parseInt(id) },
       include: {
         _count: {
@@ -154,7 +154,7 @@ router.post('/:id/register', authMiddleware, async (req, res) => {
     }
 
     // Check if user is already registered
-    const existingRegistration = await prisma.eventRegistration.findUnique({
+    const existingRegistration = await prisma.EventRegistration.findUnique({
       where: {
         userId_eventId: {
           userId: userId,
@@ -177,7 +177,7 @@ router.post('/:id/register', authMiddleware, async (req, res) => {
     }
 
     // Create registration
-    const registration = await prisma.eventRegistration.create({
+    const registration = await prisma.EventRegistration.create({
       data: {
         userId: userId,
         eventId: parseInt(id),
@@ -217,7 +217,7 @@ router.delete('/:id/register', authMiddleware, async (req, res) => {
     const userId = req.user.id;
 
     // Check if registration exists
-    const registration = await prisma.eventRegistration.findUnique({
+    const registration = await prisma.EventRegistration.findUnique({
       where: {
         userId_eventId: {
           userId: userId,
@@ -234,7 +234,7 @@ router.delete('/:id/register', authMiddleware, async (req, res) => {
     }
 
     // Update registration status to cancelled
-    await prisma.eventRegistration.update({
+    await prisma.EventRegistration.update({
       where: {
         id: registration.id
       },
@@ -268,7 +268,7 @@ router.get('/user/registrations', authMiddleware, async (req, res) => {
       whereClause.status = status;
     }
 
-    const registrations = await prisma.eventRegistration.findMany({
+    const registrations = await prisma.EventRegistration.findMany({
       where: whereClause,
       include: {
         event: true

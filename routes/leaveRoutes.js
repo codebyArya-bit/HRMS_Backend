@@ -24,7 +24,7 @@ router.get("/", authMiddleware, async (req, res) => {
     // Managers, HR, and Admin can see all requests
     // You can add more specific filtering logic here if needed
 
-    const leaveRequests = await prisma.leaveRequest.findMany({
+    const leaveRequests = await prisma.LeaveRequest.findMany({
       where: whereClause,
       include: {
         employee: {
@@ -60,7 +60,7 @@ router.get("/pending", authMiddleware, async (req, res) => {
       return res.status(403).json({ error: "Access denied" });
     }
 
-    const pendingRequests = await prisma.leaveRequest.findMany({
+    const pendingRequests = await prisma.LeaveRequest.findMany({
       where: {
         status: 'PENDING'
       },
@@ -97,7 +97,7 @@ router.post("/", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Start date, end date, and reason are required" });
     }
 
-    const leaveRequest = await prisma.leaveRequest.create({
+    const leaveRequest = await prisma.LeaveRequest.create({
       data: {
         startDate: new Date(startDate),
         endDate: new Date(endDate),
@@ -139,7 +139,7 @@ router.put("/:id/approve", authMiddleware, async (req, res) => {
       return res.status(403).json({ error: "Access denied" });
     }
 
-    const leaveRequest = await prisma.leaveRequest.findUnique({
+    const leaveRequest = await prisma.LeaveRequest.findUnique({
       where: { id: parseInt(id) }
     });
 
@@ -151,7 +151,7 @@ router.put("/:id/approve", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Only pending requests can be approved" });
     }
 
-    const updatedRequest = await prisma.leaveRequest.update({
+    const updatedRequest = await prisma.LeaveRequest.update({
       where: { id: parseInt(id) },
       data: {
         status: 'APPROVED',
@@ -191,7 +191,7 @@ router.put("/:id/reject", authMiddleware, async (req, res) => {
       return res.status(403).json({ error: "Access denied" });
     }
 
-    const leaveRequest = await prisma.leaveRequest.findUnique({
+    const leaveRequest = await prisma.LeaveRequest.findUnique({
       where: { id: parseInt(id) }
     });
 
@@ -203,7 +203,7 @@ router.put("/:id/reject", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Only pending requests can be rejected" });
     }
 
-    const updatedRequest = await prisma.leaveRequest.update({
+    const updatedRequest = await prisma.LeaveRequest.update({
       where: { id: parseInt(id) },
       data: {
         status: 'REJECTED',
@@ -237,7 +237,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
     const user = req.user;
     const userRole = user.role?.name || user.role;
 
-    const leaveRequest = await prisma.leaveRequest.findUnique({
+    const leaveRequest = await prisma.LeaveRequest.findUnique({
       where: { id: parseInt(id) },
       include: {
         employee: {
@@ -275,7 +275,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
     const user = req.user;
     const userRole = user.role?.name || user.role;
 
-    const leaveRequest = await prisma.leaveRequest.findUnique({
+    const leaveRequest = await prisma.LeaveRequest.findUnique({
       where: { id: parseInt(id) }
     });
 
@@ -297,7 +297,7 @@ router.delete("/:id", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Cannot cancel this request" });
     }
 
-    const updatedRequest = await prisma.leaveRequest.update({
+    const updatedRequest = await prisma.LeaveRequest.update({
       where: { id: parseInt(id) },
       data: {
         status: 'CANCELLED',

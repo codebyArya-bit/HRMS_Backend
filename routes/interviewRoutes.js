@@ -25,7 +25,7 @@ router.get('/', authMiddleware, async (req, res) => {
       };
     }
 
-    const interviews = await prisma.interview.findMany({
+    const interviews = await prisma.Interview.findMany({
       where: whereClause,
       include: {
         candidate: {
@@ -63,7 +63,7 @@ router.get('/', authMiddleware, async (req, res) => {
       skip: parseInt(offset)
     });
 
-    const totalCount = await prisma.interview.count({ where: whereClause });
+    const totalCount = await prisma.Interview.count({ where: whereClause });
 
     res.json({
       interviews,
@@ -81,7 +81,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     
-    const interview = await prisma.interview.findUnique({
+    const interview = await prisma.Interview.findUnique({
       where: { id: parseInt(id) },
       include: {
         candidate: {
@@ -139,7 +139,7 @@ router.post('/', authMiddleware, isAdminOrHR, async (req, res) => {
     } = req.body;
 
     // Check if candidate exists
-    const candidate = await prisma.candidate.findUnique({
+    const candidate = await prisma.Candidate.findUnique({
       where: { id: parseInt(candidateId) }
     });
 
@@ -148,7 +148,7 @@ router.post('/', authMiddleware, isAdminOrHR, async (req, res) => {
     }
 
     // Check if interviewer exists
-    const interviewer = await prisma.user.findUnique({
+    const interviewer = await prisma.User.findUnique({
       where: { id: parseInt(interviewerId) }
     });
 
@@ -157,7 +157,7 @@ router.post('/', authMiddleware, isAdminOrHR, async (req, res) => {
     }
 
     // Check for scheduling conflicts
-    const conflictingInterview = await prisma.interview.findFirst({
+    const conflictingInterview = await prisma.Interview.findFirst({
       where: {
         interviewerId: parseInt(interviewerId),
         scheduledDate: {
@@ -174,7 +174,7 @@ router.post('/', authMiddleware, isAdminOrHR, async (req, res) => {
       return res.status(400).json({ error: 'Interviewer has a scheduling conflict' });
     }
 
-    const interview = await prisma.interview.create({
+    const interview = await prisma.Interview.create({
       data: {
         title,
         candidateId: parseInt(candidateId),
@@ -213,7 +213,7 @@ router.post('/', authMiddleware, isAdminOrHR, async (req, res) => {
 
     // Update candidate status to INTERVIEW if not already
     if (candidate.status === 'NEW' || candidate.status === 'SCREENING') {
-      await prisma.candidate.update({
+      await prisma.Candidate.update({
         where: { id: parseInt(candidateId) },
         data: { status: 'INTERVIEW' }
       });
@@ -244,7 +244,7 @@ router.patch('/:id', authMiddleware, isAdminOrHR, async (req, res) => {
       updateData.candidateId = parseInt(updateData.candidateId);
     }
 
-    const interview = await prisma.interview.update({
+    const interview = await prisma.Interview.update({
       where: { id: parseInt(id) },
       data: updateData,
       include: {
@@ -285,7 +285,7 @@ router.patch('/:id/feedback', authMiddleware, async (req, res) => {
     const { id } = req.params;
     const { feedback, rating } = req.body;
 
-    const interview = await prisma.interview.update({
+    const interview = await prisma.Interview.update({
       where: { id: parseInt(id) },
       data: {
         feedback,
@@ -320,11 +320,11 @@ router.get('/stats/overview', authMiddleware, isAdminOrHR, async (req, res) => {
       cancelledInterviews,
       todayInterviews
     ] = await Promise.all([
-      prisma.interview.count(),
-      prisma.interview.count({ where: { status: 'SCHEDULED' } }),
-      prisma.interview.count({ where: { status: 'COMPLETED' } }),
-      prisma.interview.count({ where: { status: 'CANCELLED' } }),
-      prisma.interview.count({
+      prisma.Interview.count(),
+      prisma.Interview.count({ where: { status: 'SCHEDULED' } }),
+      prisma.Interview.count({ where: { status: 'COMPLETED' } }),
+      prisma.Interview.count({ where: { status: 'CANCELLED' } }),
+      prisma.Interview.count({
         where: {
           scheduledDate: {
             gte: new Date(new Date().setHours(0, 0, 0, 0)),
@@ -335,7 +335,7 @@ router.get('/stats/overview', authMiddleware, isAdminOrHR, async (req, res) => {
     ]);
 
     // Get upcoming interviews (next 7 days)
-    const upcomingInterviews = await prisma.interview.count({
+    const upcomingInterviews = await prisma.Interview.count({
       where: {
         scheduledDate: {
           gte: new Date(),
@@ -346,7 +346,7 @@ router.get('/stats/overview', authMiddleware, isAdminOrHR, async (req, res) => {
     });
 
     // Calculate average rating
-    const ratingStats = await prisma.interview.aggregate({
+    const ratingStats = await prisma.Interview.aggregate({
       _avg: {
         rating: true
       },
@@ -386,7 +386,7 @@ router.get('/availability/:interviewerId', authMiddleware, async (req, res) => {
     const endDate = new Date(date);
     endDate.setDate(endDate.getDate() + 1);
 
-    const scheduledInterviews = await prisma.interview.findMany({
+    const scheduledInterviews = await prisma.Interview.findMany({
       where: {
         interviewerId: parseInt(interviewerId),
         scheduledDate: {
@@ -421,7 +421,7 @@ router.delete('/:id', authMiddleware, isAdminOrHR, async (req, res) => {
   try {
     const { id } = req.params;
     
-    await prisma.interview.delete({
+    await prisma.Interview.delete({
       where: { id: parseInt(id) }
     });
 

@@ -10,7 +10,7 @@ async function testAuditLogsWithAuth() {
         
         // Step 1: Get admin user and create a valid token
         console.log('1️⃣ Getting admin user...');
-        const adminUser = await prisma.user.findFirst({
+        const adminUser = await prisma.User.findFirst({
             where: { email: 'a@a.com' },
             include: { role: true }
         });

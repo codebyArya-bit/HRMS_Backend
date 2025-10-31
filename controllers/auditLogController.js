@@ -45,7 +45,7 @@ const getAuditLogs = async (req, res) => {
     }
 
     const [auditLogs, total] = await Promise.all([
-      prisma.auditLog.findMany({
+      prisma.AuditLog.findMany({
         where,
         skip,
         take,
@@ -63,7 +63,7 @@ const getAuditLogs = async (req, res) => {
           timestamp: 'desc'
         }
       }),
-      prisma.auditLog.count({ where })
+      prisma.AuditLog.count({ where })
     ]);
 
     res.json({
@@ -91,7 +91,7 @@ const getAuditLogById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const auditLog = await prisma.auditLog.findUnique({
+    const auditLog = await prisma.AuditLog.findUnique({
       where: { id: parseInt(id) },
       include: {
         user: {
@@ -142,7 +142,7 @@ const createAuditLog = async (req, res) => {
       description
     } = req.body;
 
-    const auditLog = await prisma.auditLog.create({
+    const auditLog = await prisma.AuditLog.create({
       data: {
         userId: parseInt(userId),
         action,
@@ -185,7 +185,7 @@ const createAuditLog = async (req, res) => {
 // Helper function to log audit events (for use in other controllers)
 const logAuditEvent = async (data) => {
   try {
-    const auditLog = await prisma.auditLog.create({
+    const auditLog = await prisma.AuditLog.create({
       data: {
         userId: data.userId,
         action: data.action,
@@ -229,23 +229,23 @@ const getAuditLogStats = async (req, res) => {
       statusCounts,
       recentActivity
     ] = await Promise.all([
-      prisma.auditLog.count({ where }),
-      prisma.auditLog.groupBy({
+      prisma.AuditLog.count({ where }),
+      prisma.AuditLog.groupBy({
         by: ['category'],
         where,
         _count: { category: true }
       }),
-      prisma.auditLog.groupBy({
+      prisma.AuditLog.groupBy({
         by: ['severity'],
         where,
         _count: { severity: true }
       }),
-      prisma.auditLog.groupBy({
+      prisma.AuditLog.groupBy({
         by: ['status'],
         where,
         _count: { status: true }
       }),
-      prisma.auditLog.findMany({
+      prisma.AuditLog.findMany({
         where,
         take: 10,
         orderBy: { timestamp: 'desc' },

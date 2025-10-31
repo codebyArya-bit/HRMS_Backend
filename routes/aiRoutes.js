@@ -163,7 +163,7 @@ router.get("/performance-insights/:employeeId", async (req, res) => {
     }
 
     // Fetch user from database
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { id: userId },
       include: {
         performanceInsights: {
@@ -262,7 +262,7 @@ Provide analysis in JSON format:
     }
 
     // Save AI insights to database
-    const savedInsight = await prisma.performanceInsight.create({
+    const savedInsight = await prisma.PerformanceInsight.create({
       data: {
         employeeId: user.id,
         performanceScore: performanceData.performanceScore,
@@ -410,7 +410,7 @@ router.post("/sentiment-analysis", async (req, res) => {
     }
 
     // Verify employee exists
-    const employee = await prisma.user.findUnique({
+    const employee = await prisma.User.findUnique({
       where: { id: parseInt(employeeId) },
       select: { id: true, name: true, email: true, department: true }
     });
@@ -477,7 +477,7 @@ Provide detailed sentiment analysis in JSON format:
     }
 
     // Save feedback to database
-    const savedFeedback = await prisma.employeeFeedback.create({
+    const savedFeedback = await prisma.EmployeeFeedback.create({
       data: {
         employeeId: employee.id,
         feedbackText,
@@ -487,18 +487,13 @@ Provide detailed sentiment analysis in JSON format:
     });
 
     // Save sentiment analysis to database
-    const savedAnalysis = await prisma.sentimentAnalysis.create({
+    const savedAnalysis = await prisma.SentimentAnalysis.create({
       data: {
         feedbackId: savedFeedback.id,
-        overallSentiment: sentimentAnalysis.overallSentiment,
-        sentimentScore: sentimentAnalysis.sentimentScore,
+        classification: sentimentAnalysis.overallSentiment,
         confidence: sentimentAnalysis.confidence,
-        emotions: JSON.stringify(sentimentAnalysis.emotions),
         keyThemes: JSON.stringify(sentimentAnalysis.keyThemes),
-        concerns: JSON.stringify(sentimentAnalysis.concerns),
-        positiveAspects: JSON.stringify(sentimentAnalysis.positiveAspects),
-        actionableInsights: JSON.stringify(sentimentAnalysis.actionableInsights),
-        urgencyLevel: sentimentAnalysis.urgencyLevel
+        recommendations: JSON.stringify(sentimentAnalysis.actionableInsights)
       }
     });
 
@@ -552,7 +547,7 @@ router.get("/sentiment-trends/:department", async (req, res) => {
     }
 
     // Fetch feedback data from database for the department
-    const feedbackData = await prisma.employeeFeedback.findMany({
+    const feedbackData = await prisma.EmployeeFeedback.findMany({
       where: {
         employee: {
           department: department
@@ -573,7 +568,7 @@ router.get("/sentiment-trends/:department", async (req, res) => {
     });
 
     // Check if we have existing trend analysis for this department and timeframe
-    const existingTrend = await prisma.sentimentTrend.findFirst({
+    const existingTrend = await prisma.SentimentTrend.findFirst({
       where: {
         department: department,
         timeframe: timeframe,
@@ -660,7 +655,7 @@ Provide trend analysis in JSON format:
     }
 
     // Save trend analysis to database
-    const savedTrend = await prisma.sentimentTrend.create({
+    const savedTrend = await prisma.SentimentTrend.create({
       data: {
         department: department,
         timeframe: timeframe,
@@ -799,7 +794,7 @@ router.post("/sentiment-analysis/export", async (req, res) => {
     }
 
     // Get feedback data with sentiment analysis
-    const feedbackData = await prisma.employeeFeedback.findMany({
+    const feedbackData = await prisma.EmployeeFeedback.findMany({
       where: whereClause,
       include: {
         sentimentAnalysis: true,

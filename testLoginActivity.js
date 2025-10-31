@@ -7,7 +7,7 @@ async function testLoginActivity() {
     console.log('Testing LoginActivity queries...');
     
     // Check if there's any login activity data
-    const count = await prisma.loginActivity.count();
+    const count = await prisma.LoginActivity.count();
     console.log(`Total LoginActivity records: ${count}`);
     
     if (count > 0) {
@@ -15,7 +15,7 @@ async function testLoginActivity() {
       const now = new Date();
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       
-      const activities = await prisma.loginActivity.findMany({
+      const activities = await prisma.LoginActivity.findMany({
         where: {
           timestamp: {
             gte: weekAgo,
@@ -40,9 +40,9 @@ async function testLoginActivity() {
       console.log('No LoginActivity records found. Creating some sample data...');
       
       // Create some sample login activities
-      const user = await prisma.user.findFirst();
+      const user = await prisma.User.findFirst();
       if (user) {
-        await prisma.loginActivity.create({
+        await prisma.LoginActivity.create({
           data: {
             userId: user.id,
             timestamp: new Date(),

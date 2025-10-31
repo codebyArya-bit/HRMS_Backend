@@ -122,7 +122,7 @@ const DEPARTMENTS = [
 router.get('/', async (req, res) => {
   try {
     // Get user counts for each department
-    const users = await prisma.user.findMany({
+    const users = await prisma.User.findMany({
       select: {
         department: true
       }
@@ -170,7 +170,7 @@ router.get('/:id', async (req, res) => {
     }
 
     // Get employees in this department
-    const employees = await prisma.user.findMany({
+    const employees = await prisma.User.findMany({
       where: {
         department: department.name
       },
@@ -209,7 +209,7 @@ router.get('/:id', async (req, res) => {
 // GET /api/departments/stats/overview - Get department statistics
 router.get('/stats/overview', async (req, res) => {
   try {
-    const users = await prisma.user.findMany({
+    const users = await prisma.User.findMany({
       select: {
         department: true,
         role: {

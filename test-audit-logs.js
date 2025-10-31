@@ -6,11 +6,11 @@ async function testAuditLogs() {
     console.log('Testing audit logs database connection...');
     
     // Check if we can count audit logs
-    const count = await prisma.auditLog.count();
+    const count = await prisma.AuditLog.count();
     console.log('✅ Audit logs count:', count);
     
     // Try to fetch a few audit logs
-    const logs = await prisma.auditLog.findMany({
+    const logs = await prisma.AuditLog.findMany({
       take: 5,
       include: {
         user: {
@@ -29,7 +29,7 @@ async function testAuditLogs() {
     console.log('✅ Sample audit logs:', logs.length > 0 ? logs : 'No audit logs found');
     
     // Test creating a sample audit log
-    const testLog = await prisma.auditLog.create({
+    const testLog = await prisma.AuditLog.create({
       data: {
         action: 'TEST_ACTION',
         category: 'SYSTEM',

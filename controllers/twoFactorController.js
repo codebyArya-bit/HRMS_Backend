@@ -21,7 +21,7 @@ const setup2FA = async (req, res) => {
     const { method = 'totp' } = req.body;
 
     // Check if user exists
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { id: userId }
     });
 
@@ -48,7 +48,7 @@ const setup2FA = async (req, res) => {
     const qrCodeUrl = await QRCode.toDataURL(secret.otpauth_url);
 
     // Store the secret temporarily (not enabled yet)
-    await prisma.user.update({
+    await prisma.User.update({
       where: { id: userId },
       data: {
         twoFactorSecret: secret.base32,
@@ -81,7 +81,7 @@ const verify2FA = async (req, res) => {
     }
 
     // Get user with secret
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { id: userId }
     });
 
@@ -102,7 +102,7 @@ const verify2FA = async (req, res) => {
     }
 
     // Enable 2FA
-    await prisma.user.update({
+    await prisma.User.update({
       where: { id: userId },
       data: {
         twoFactorEnabled: true,
@@ -128,7 +128,7 @@ const disable2FA = async (req, res) => {
     }
 
     // Get user
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { id: userId }
     });
 
@@ -159,7 +159,7 @@ const disable2FA = async (req, res) => {
       if (codeIndex !== -1) {
         // Remove used backup code
         backupCodes.splice(codeIndex, 1);
-        await prisma.user.update({
+        await prisma.User.update({
           where: { id: userId },
           data: { backupCodes: JSON.stringify(backupCodes) }
         });
@@ -172,7 +172,7 @@ const disable2FA = async (req, res) => {
     }
 
     // Disable 2FA
-    await prisma.user.update({
+    await prisma.User.update({
       where: { id: userId },
       data: {
         twoFactorEnabled: false,
@@ -185,7 +185,7 @@ const disable2FA = async (req, res) => {
     });
 
     // Remove all 2FA devices
-    await prisma.twoFactorDevice.deleteMany({
+    await prisma.TwoFactorDevice.deleteMany({
       where: { userId: userId }
     });
 
@@ -201,7 +201,7 @@ const get2FAStatus = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { id: userId },
       select: {
         twoFactorEnabled: true,
@@ -242,7 +242,7 @@ const generateNewBackupCodes = async (req, res) => {
     }
 
     // Get user
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { id: userId }
     });
 
@@ -266,7 +266,7 @@ const generateNewBackupCodes = async (req, res) => {
     const newBackupCodes = generateBackupCodes();
 
     // Update user with new backup codes
-    await prisma.user.update({
+    await prisma.User.update({
       where: { id: userId },
       data: {
         backupCodes: JSON.stringify(newBackupCodes)
@@ -290,7 +290,7 @@ const verifyToken = async (req, res) => {
     }
 
     // Get user
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { id: userId }
     });
 
@@ -317,7 +317,7 @@ const verifyToken = async (req, res) => {
       if (codeIndex !== -1) {
         // Remove used backup code
         backupCodes.splice(codeIndex, 1);
-        await prisma.user.update({
+        await prisma.User.update({
           where: { id: userId },
           data: { 
             backupCodes: JSON.stringify(backupCodes),
@@ -330,7 +330,7 @@ const verifyToken = async (req, res) => {
 
     if (verified) {
       // Update last used timestamp
-      await prisma.user.update({
+      await prisma.User.update({
         where: { id: userId },
         data: { twoFactorLastUsed: new Date() }
       });
@@ -346,12 +346,12 @@ const verifyToken = async (req, res) => {
 // Get 2FA statistics (for admin)
 const get2FAStats = async (req, res) => {
   try {
-    const totalUsers = await prisma.user.count();
-    const usersWithTwoFactor = await prisma.user.count({
+    const totalUsers = await prisma.User.count();
+    const usersWithTwoFactor = await prisma.User.count({
       where: { twoFactorEnabled: true }
     });
 
-    const recentSetups = await prisma.user.count({
+    const recentSetups = await prisma.User.count({
       where: {
         twoFactorEnabled: true,
         twoFactorSetupDate: {
@@ -360,7 +360,7 @@ const get2FAStats = async (req, res) => {
       }
     });
 
-    const methodStats = await prisma.user.groupBy({
+    const methodStats = await prisma.User.groupBy({
       by: ['twoFactorMethod'],
       where: { twoFactorEnabled: true },
       _count: true
@@ -411,7 +411,7 @@ const getAllUsers2FAStatus = async (req, res) => {
       ]
     };
 
-    const users = await prisma.user.findMany({
+    const users = await prisma.User.findMany({
       where,
       select: {
         id: true,
@@ -437,7 +437,7 @@ const getAllUsers2FAStatus = async (req, res) => {
       take
     });
 
-    const totalUsers = await prisma.user.count({ where });
+    const totalUsers = await prisma.User.count({ where });
 
     res.json({
       users,
@@ -468,7 +468,7 @@ const adminEnable2FA = async (req, res) => {
     }
 
     // Check if user exists
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { id: userIdInt }
     });
 
@@ -487,7 +487,7 @@ const adminEnable2FA = async (req, res) => {
     });
 
     // Update user with 2FA details
-    await prisma.user.update({
+    await prisma.User.update({
       where: { id: userIdInt },
       data: {
         twoFactorSecret: secret.base32,
@@ -520,7 +520,7 @@ const adminDisable2FA = async (req, res) => {
     }
 
     // Check if user exists
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { id: userIdInt }
     });
 
@@ -533,7 +533,7 @@ const adminDisable2FA = async (req, res) => {
     }
 
     // Disable 2FA
-    await prisma.user.update({
+    await prisma.User.update({
       where: { id: userIdInt },
       data: {
         twoFactorEnabled: false,
@@ -545,7 +545,7 @@ const adminDisable2FA = async (req, res) => {
     });
 
     // Remove all 2FA devices
-    await prisma.twoFactorDevice.deleteMany({
+    await prisma.TwoFactorDevice.deleteMany({
       where: { userId: userIdInt }
     });
 

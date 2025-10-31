@@ -4,11 +4,11 @@ const prisma = new PrismaClient();
 
 async function checkUsers() {
   try {
-    const userCount = await prisma.user.count();
+    const userCount = await prisma.User.count();
     console.log('Total users in database:', userCount);
     
     if (userCount > 0) {
-      const users = await prisma.user.findMany({
+      const users = await prisma.User.findMany({
         select: {
           id: true,
           name: true,

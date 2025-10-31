@@ -14,7 +14,7 @@ router.get("/pipeline", authMiddleware, isAdminOrHR, async (req, res) => {
     const whereClause = {};
     if (jobId) whereClause.jobId = parseInt(jobId);
 
-    const candidates = await prisma.candidate.findMany({
+    const candidates = await prisma.Candidate.findMany({
       where: whereClause,
       include: {
         job: {
@@ -73,7 +73,7 @@ router.patch("/candidate/:id/advance", authMiddleware, isAdminOrHR, async (req, 
     const { id } = req.params;
     const { notes, nextStage } = req.body;
 
-    const candidate = await prisma.candidate.findUnique({
+    const candidate = await prisma.Candidate.findUnique({
       where: { id: parseInt(id) }
     });
 
@@ -95,7 +95,7 @@ router.patch("/candidate/:id/advance", authMiddleware, isAdminOrHR, async (req, 
       return res.status(400).json({ error: 'Cannot advance from current stage' });
     }
 
-    const updatedCandidate = await prisma.candidate.update({
+    const updatedCandidate = await prisma.Candidate.update({
       where: { id: parseInt(id) },
       data: {
         status: newStatus,
@@ -113,7 +113,7 @@ router.patch("/candidate/:id/advance", authMiddleware, isAdminOrHR, async (req, 
     });
 
     // Log the stage change
-    await prisma.auditLog.create({
+    await prisma.AuditLog.create({
       data: {
         userId: req.user.id,
         action: 'CANDIDATE_STAGE_CHANGE',
@@ -136,7 +136,7 @@ router.patch("/candidate/:id/reject", authMiddleware, isAdminOrHR, async (req, r
     const { id } = req.params;
     const { reason } = req.body;
 
-    const candidate = await prisma.candidate.findUnique({
+    const candidate = await prisma.Candidate.findUnique({
       where: { id: parseInt(id) }
     });
 
@@ -144,7 +144,7 @@ router.patch("/candidate/:id/reject", authMiddleware, isAdminOrHR, async (req, r
       return res.status(404).json({ error: 'Candidate not found' });
     }
 
-    const updatedCandidate = await prisma.candidate.update({
+    const updatedCandidate = await prisma.Candidate.update({
       where: { id: parseInt(id) },
       data: {
         status: 'REJECTED',
@@ -162,7 +162,7 @@ router.patch("/candidate/:id/reject", authMiddleware, isAdminOrHR, async (req, r
     });
 
     // Log the rejection
-    await prisma.auditLog.create({
+    await prisma.AuditLog.create({
       data: {
         userId: req.user.id,
         action: 'CANDIDATE_REJECTED',
@@ -194,37 +194,37 @@ router.get("/stats", authMiddleware, isAdminOrHR, async (req, res) => {
       rejections,
       avgTimeToHire
     ] = await Promise.all([
-      prisma.candidate.count(),
-      prisma.candidate.count({
+      prisma.Candidate.count(),
+      prisma.Candidate.count({
         where: {
           dateApplied: { gte: startDate }
         }
       }),
-      prisma.interview.count({
+      prisma.Interview.count({
         where: {
           scheduledDate: { gte: startDate }
         }
       }),
-      prisma.candidate.count({
+      prisma.Candidate.count({
         where: {
           status: 'OFFERED',
           updatedAt: { gte: startDate }
         }
       }),
-      prisma.candidate.count({
+      prisma.Candidate.count({
         where: {
           status: 'HIRED',
           dateHired: { gte: startDate }
         }
       }),
-      prisma.candidate.count({
+      prisma.Candidate.count({
         where: {
           status: 'REJECTED',
           updatedAt: { gte: startDate }
         }
       }),
       // Calculate average time to hire (mock calculation for now)
-      prisma.candidate.findMany({
+      prisma.Candidate.findMany({
         where: {
           status: 'HIRED',
           dateHired: { gte: startDate }
@@ -247,7 +247,7 @@ router.get("/stats", authMiddleware, isAdminOrHR, async (req, res) => {
       : 0;
 
     // Get department-wise hiring stats
-    const departmentStats = await prisma.candidate.groupBy({
+    const departmentStats = await prisma.Candidate.groupBy({
       by: ['status'],
       where: {
         job: {
@@ -282,7 +282,7 @@ router.get("/stats", authMiddleware, isAdminOrHR, async (req, res) => {
 router.get("/bottlenecks", authMiddleware, isAdminOrHR, async (req, res) => {
   try {
     // Analyze where candidates are getting stuck
-    const stageAnalysis = await prisma.candidate.groupBy({
+    const stageAnalysis = await prisma.Candidate.groupBy({
       by: ['status'],
       _count: {
         status: true
@@ -293,7 +293,7 @@ router.get("/bottlenecks", authMiddleware, isAdminOrHR, async (req, res) => {
     });
 
     // Find jobs with low conversion rates
-    const jobsWithLowConversion = await prisma.job.findMany({
+    const jobsWithLowConversion = await prisma.Job.findMany({
       where: {
         archived: false,
         applicants: {
@@ -327,7 +327,7 @@ router.get("/bottlenecks", authMiddleware, isAdminOrHR, async (req, res) => {
       .sort((a, b) => a.conversionRate - b.conversionRate);
 
     // Identify interview scheduling delays
-    const interviewDelays = await prisma.interview.findMany({
+    const interviewDelays = await prisma.Interview.findMany({
       where: {
         status: 'SCHEDULED',
         scheduledDate: {

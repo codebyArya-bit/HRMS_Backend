@@ -26,12 +26,12 @@ router.get('/stats', authMiddleware, async (req, res) => {
         recentLogins,
         pendingApprovals
       ] = await Promise.all([
-        prisma.user.count(),
-        prisma.user.count(), // All users are considered active
-        prisma.role.count(),
-        prisma.user.groupBy({ by: ['department'] }).then(result => result.length),
-        prisma.job.count({ where: { status: 'OPEN' } }),
-        prisma.loginActivity.count({
+        prisma.User.count(),
+        prisma.User.count(), // All users are considered active
+        prisma.Role.count(),
+        prisma.User.groupBy({ by: ['department'] }).then(result => result.length),
+        prisma.Job.count({ where: { status: 'OPEN' } }),
+        prisma.LoginActivity.count({
           where: {
             timestamp: {
               gte: new Date(Date.now() - 24 * 60 * 60 * 1000) // Last 24 hours
@@ -66,22 +66,22 @@ router.get('/stats', authMiddleware, async (req, res) => {
         newCandidates,
         hiredCandidates
       ] = await Promise.all([
-        prisma.user.count(),
-        prisma.user.count(), // All users are considered active
-        prisma.user.count({
+        prisma.User.count(),
+        prisma.User.count(), // All users are considered active
+        prisma.User.count({
           where: {
             joinDate: {
               gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
             }
           }
         }),
-        prisma.user.groupBy({ by: ['department'] }).then(result => result.length),
+        prisma.User.groupBy({ by: ['department'] }).then(result => result.length),
         // Mock pending onboarding
         Promise.resolve(3),
         // Job and candidate statistics
-        prisma.job.count({ where: { status: 'OPEN' } }),
-        prisma.candidate.count({ where: { status: 'NEW' } }),
-        prisma.candidate.findMany({
+        prisma.Job.count({ where: { status: 'OPEN' } }),
+        prisma.Candidate.count({ where: { status: 'NEW' } }),
+        prisma.Candidate.findMany({
           where: {
             status: 'HIRED',
             dateHired: { not: null }
@@ -123,15 +123,15 @@ router.get('/stats', authMiddleware, async (req, res) => {
         activeTeamMembers,
         departmentEmployees
       ] = await Promise.all([
-        prisma.user.count({
+        prisma.User.count({
           where: { department: userDepartment }
         }),
-        prisma.user.count({
+        prisma.User.count({
           where: { 
             department: userDepartment
           }
         }),
-        prisma.user.findMany({
+        prisma.User.findMany({
           where: { department: userDepartment },
           select: {
             id: true,
@@ -151,7 +151,7 @@ router.get('/stats', authMiddleware, async (req, res) => {
 
     } else {
       // Employee gets personal statistics
-      const employee = await prisma.user.findUnique({
+      const employee = await prisma.User.findUnique({
         where: { id: userId },
         include: {
           role: {
@@ -192,7 +192,7 @@ router.get('/activities', authMiddleware, async (req, res) => {
 
     if (userRole === 'ADMIN' || userRole === 'HR') {
       // Get system-wide activities
-      const recentLogins = await prisma.loginActivity.findMany({
+      const recentLogins = await prisma.LoginActivity.findMany({
         take: parseInt(limit),
         orderBy: { timestamp: 'desc' },
         include: {
@@ -272,7 +272,7 @@ router.get('/departments', authMiddleware, isManagerOrAbove, async (req, res) =>
       whereClause.department = userDepartment;
     }
 
-    const departmentStats = await prisma.user.groupBy({
+    const departmentStats = await prisma.User.groupBy({
       by: ['department'],
       where: whereClause,
       _count: {
@@ -282,7 +282,7 @@ router.get('/departments', authMiddleware, isManagerOrAbove, async (req, res) =>
 
     const departments = await Promise.all(
       departmentStats.map(async (dept) => {
-        const activeCount = await prisma.user.count({
+        const activeCount = await prisma.User.count({
           where: {
             department: dept.department,
             ...(userRole === 'MANAGER' && { department: userDepartment })
@@ -308,7 +308,7 @@ router.get('/departments', authMiddleware, isManagerOrAbove, async (req, res) =>
 // Get role distribution (Admin/HR only)
 router.get('/roles', authMiddleware, isAdminOrHR, async (req, res) => {
   try {
-    const roleStats = await prisma.role.findMany({
+    const roleStats = await prisma.Role.findMany({
       include: {
         _count: {
           select: {
@@ -350,7 +350,7 @@ router.get('/performance', authMiddleware, isManagerOrAbove, async (req, res) =>
     if (userRole === 'MANAGER') {
       // Department-specific performance
       performanceData.department = userDepartment;
-      performanceData.teamSize = await prisma.user.count({
+      performanceData.teamSize = await prisma.User.count({
         where: { department: userDepartment }
       });
     }

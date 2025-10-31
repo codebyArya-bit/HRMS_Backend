@@ -21,7 +21,7 @@ export const authMiddleware = async (req, res, next) => {
     console.log("🔍 JWT decoded payload:", decoded);
 
     // 3️⃣ Find user from DB
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { id: decoded.id },
       include: { role: true },
     });

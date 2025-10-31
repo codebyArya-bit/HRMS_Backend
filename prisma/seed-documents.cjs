@@ -5,7 +5,7 @@ async function seedDocuments() {
   try {
     // Create document categories
     const categories = await Promise.all([
-      prisma.documentCategory.create({
+      prisma.DocumentCategory.create({
         data: {
           name: 'Policies',
           description: 'Company policies and procedures',
@@ -13,7 +13,7 @@ async function seedDocuments() {
           color: 'blue'
         }
       }),
-      prisma.documentCategory.create({
+      prisma.DocumentCategory.create({
         data: {
           name: 'Training',
           description: 'Training materials and guides',
@@ -21,7 +21,7 @@ async function seedDocuments() {
           color: 'green'
         }
       }),
-      prisma.documentCategory.create({
+      prisma.DocumentCategory.create({
         data: {
           name: 'Forms',
           description: 'Employee forms and templates',
@@ -29,7 +29,7 @@ async function seedDocuments() {
           color: 'yellow'
         }
       }),
-      prisma.documentCategory.create({
+      prisma.DocumentCategory.create({
         data: {
           name: 'Benefits',
           description: 'Benefits and compensation information',
@@ -37,7 +37,7 @@ async function seedDocuments() {
           color: 'purple'
         }
       }),
-      prisma.documentCategory.create({
+      prisma.DocumentCategory.create({
         data: {
           name: 'Safety',
           description: 'Safety protocols and guidelines',
@@ -48,7 +48,7 @@ async function seedDocuments() {
     ]);
 
     // Get the first user (assuming there's at least one user)
-    const firstUser = await prisma.user.findFirst();
+    const firstUser = await prisma.User.findFirst();
     if (!firstUser) {
       console.log('No users found. Please create a user first.');
       return;
@@ -56,7 +56,7 @@ async function seedDocuments() {
 
     // Create sample documents
     const documents = await Promise.all([
-      prisma.document.create({
+      prisma.Document.create({
         data: {
           title: 'Employee Handbook 2024',
           description: 'Complete guide to company policies, procedures, and benefits',
@@ -72,7 +72,7 @@ async function seedDocuments() {
           uploadedById: firstUser.id
         }
       }),
-      prisma.document.create({
+      prisma.Document.create({
         data: {
           title: 'Code of Conduct',
           description: 'Professional standards and ethical guidelines',
@@ -88,7 +88,7 @@ async function seedDocuments() {
           uploadedById: firstUser.id
         }
       }),
-      prisma.document.create({
+      prisma.Document.create({
         data: {
           title: 'IT Security Guidelines',
           description: 'Cybersecurity best practices and protocols',
@@ -104,7 +104,7 @@ async function seedDocuments() {
           uploadedById: firstUser.id
         }
       }),
-      prisma.document.create({
+      prisma.Document.create({
         data: {
           title: 'Performance Review Template',
           description: 'Annual performance evaluation form and guidelines',
@@ -120,7 +120,7 @@ async function seedDocuments() {
           uploadedById: firstUser.id
         }
       }),
-      prisma.document.create({
+      prisma.Document.create({
         data: {
           title: 'Remote Work Policy',
           description: 'Guidelines for working from home and hybrid arrangements',
@@ -136,7 +136,7 @@ async function seedDocuments() {
           uploadedById: firstUser.id
         }
       }),
-      prisma.document.create({
+      prisma.Document.create({
         data: {
           title: 'Emergency Procedures',
           description: 'Safety protocols and emergency response procedures',
@@ -152,7 +152,7 @@ async function seedDocuments() {
           uploadedById: firstUser.id
         }
       }),
-      prisma.document.create({
+      prisma.Document.create({
         data: {
           title: 'Benefits Enrollment Guide',
           description: 'Step-by-step guide for enrolling in company benefits',
@@ -168,7 +168,7 @@ async function seedDocuments() {
           uploadedById: firstUser.id
         }
       }),
-      prisma.document.create({
+      prisma.Document.create({
         data: {
           title: 'Professional Development Plan',
           description: 'Career growth opportunities and training programs',

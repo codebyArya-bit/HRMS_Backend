@@ -16,7 +16,7 @@ router.post("/register", async (req, res) => {
 
     console.log("Registering user:", { name, email, roleId });
 
-    const user = await prisma.user.create({
+    const user = await prisma.User.create({
       data: { name, email, password: hashedPassword, roleId },
     });
 
@@ -38,7 +38,7 @@ router.post("/login", async (req, res) => {
 
   try {
     // Fetch user + role name
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { email },
       include: { role: true }, // ✅ Include role relation
     });
@@ -47,7 +47,7 @@ router.post("/login", async (req, res) => {
 
     if (!user) {
       // Log failed login attempt - user not found
-      await prisma.auditLog.create({
+      await prisma.AuditLog.create({
         data: {
           action: "Failed Login Attempt",
           category: "Authentication",
@@ -73,7 +73,7 @@ router.post("/login", async (req, res) => {
 
     if (!valid) {
       // Log failed login attempt - invalid password
-      await prisma.auditLog.create({
+      await prisma.AuditLog.create({
         data: {
           userId: user.id,
           action: "Failed Login Attempt",
@@ -105,12 +105,12 @@ router.post("/login", async (req, res) => {
     );
 
     // Log login activity
-    await prisma.loginActivity.create({
+    await prisma.LoginActivity.create({
       data: { userId: user.id, activity: "User logged in" },
     });
 
     // Create audit log entry for login
-    await prisma.auditLog.create({
+    await prisma.AuditLog.create({
       data: {
         userId: user.id,
         action: "User Login",

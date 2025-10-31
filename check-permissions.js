@@ -6,7 +6,7 @@ async function checkPermissions() {
     console.log('Checking admin user permissions...');
     
     // Find admin user
-    const adminUser = await prisma.user.findFirst({
+    const adminUser = await prisma.User.findFirst({
       where: {
         role: {
           name: 'ADMIN'
@@ -47,7 +47,7 @@ async function checkPermissions() {
       console.log('❌ Admin does NOT have view_audit_logs permission');
       
       // Check if the permission exists in the system
-      const permission = await prisma.permission.findUnique({
+      const permission = await prisma.Permission.findUnique({
         where: { id: 'view_audit_logs' }
       });
       
@@ -62,7 +62,7 @@ async function checkPermissions() {
     
     // List all available permissions
     console.log('\n📋 All available permissions in system:');
-    const allPermissions = await prisma.permission.findMany({
+    const allPermissions = await prisma.Permission.findMany({
       orderBy: { id: 'asc' }
     });
     

@@ -113,7 +113,7 @@ async function main() {
   // 1. Create all Permissions
   console.log('Creating permissions...');
   for (const perm of allPermissions) {
-    await prisma.permission.upsert({
+    await prisma.Permission.upsert({
       where: { id: perm.id },
       update: {},
       create: perm,
@@ -123,7 +123,7 @@ async function main() {
 
   // 2. Create Roles and connect permissions
   console.log('Creating roles...');
-  const adminRole = await prisma.role.upsert({
+  const adminRole = await prisma.Role.upsert({
     where: { name: 'ADMIN' },
     update: {},
     create: {
@@ -136,7 +136,7 @@ async function main() {
     },
   });
 
-  const hrRole = await prisma.role.upsert({
+  const hrRole = await prisma.Role.upsert({
     where: { name: 'HR' },
     update: {},
     create: {
@@ -155,7 +155,7 @@ async function main() {
     },
   });
 
-  const managerRole = await prisma.role.upsert({
+  const managerRole = await prisma.Role.upsert({
     where: { name: 'MANAGER' },
     update: {},
     create: {
@@ -172,7 +172,7 @@ async function main() {
     },
   });
 
-  const employeeRole = await prisma.role.upsert({
+  const employeeRole = await prisma.Role.upsert({
     where: { name: 'EMPLOYEE' },
     update: {},
     create: {
@@ -201,7 +201,7 @@ async function main() {
   };
 
   for (const employee of sampleEmployees) {
-    await prisma.user.upsert({
+    await prisma.User.upsert({
       where: { email: employee.email },
       update: {},
       create: {
@@ -221,7 +221,7 @@ async function main() {
   console.log('Creating job postings...');
   for (const job of jobPostings) {
     // Find an admin or HR user to be the poster
-    const poster = await prisma.user.findFirst({
+    const poster = await prisma.User.findFirst({
       where: {
         OR: [
           { role: { name: 'ADMIN' } },
@@ -230,7 +230,7 @@ async function main() {
       }
     });
 
-    await prisma.job.create({
+    await prisma.Job.create({
       data: {
         title: job.title,
         department: job.department,
@@ -247,13 +247,13 @@ async function main() {
 
   // 5. Create some sample login activity
   console.log('Creating login activity...');
-  const users = await prisma.user.findMany();
+  const users = await prisma.User.findMany();
   
   for (let i = 0; i < 50; i++) {
     const randomUser = users[Math.floor(Math.random() * users.length)];
     const randomDate = new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000); // Random date within last 7 days
     
-    await prisma.loginActivity.create({
+    await prisma.LoginActivity.create({
       data: {
         userId: randomUser.id,
         timestamp: randomDate,
@@ -274,7 +274,7 @@ async function main() {
   ];
 
   for (const category of documentCategories) {
-    await prisma.documentCategory.upsert({
+    await prisma.DocumentCategory.upsert({
       where: { name: category.name },
       update: {},
       create: category
@@ -297,7 +297,7 @@ async function main() {
     const randomAction = auditActions[Math.floor(Math.random() * auditActions.length)];
     const randomDate = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000);
     
-    await prisma.auditLog.create({
+    await prisma.AuditLog.create({
       data: {
         userId: randomUser.id,
         action: randomAction.action,
@@ -372,7 +372,7 @@ async function main() {
   ];
 
   for (const eventData of sampleEvents) {
-    await prisma.event.create({
+    await prisma.Event.create({
       data: eventData
     });
   }
@@ -380,7 +380,7 @@ async function main() {
 
   // Create sample candidates
   console.log('Creating candidates...');
-  const jobs = await prisma.job.findMany();
+  const jobs = await prisma.Job.findMany();
   
   const sampleCandidates = [
     {
@@ -447,7 +447,7 @@ async function main() {
     // Assign to a random job
     const randomJob = jobs[Math.floor(Math.random() * jobs.length)];
     
-    await prisma.candidate.create({
+    await prisma.Candidate.create({
       data: {
         ...candidate,
         appliedForJobId: randomJob.id,
@@ -513,13 +513,13 @@ async function main() {
 
   for (const leaveData of sampleLeaveRequests) {
     // Find the user by employeeId
-    const user = await prisma.user.findUnique({
+    const user = await prisma.User.findUnique({
       where: { employeeId: leaveData.employeeIdRef }
     });
     
     if (user) {
       const { employeeIdRef, ...leaveRequestData } = leaveData;
-      await prisma.leaveRequest.create({
+      await prisma.LeaveRequest.create({
         data: {
           ...leaveRequestData,
           employeeId: user.id // Use the actual user ID from the database

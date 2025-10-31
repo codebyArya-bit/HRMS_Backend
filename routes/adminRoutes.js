@@ -10,10 +10,10 @@ const router = express.Router();
    ========================================================= */
 router.get("/dashboard-stats", authMiddleware, isAdmin, async (req, res) => {
   try {
-    const userCount = await prisma.user.count();
-    const jobCount = await prisma.job.count();
-    const candidateCount = await prisma.candidate.count();
-    const loginActivityCount = await prisma.loginActivity.count();
+    const userCount = await prisma.User.count();
+    const jobCount = await prisma.Job.count();
+    const candidateCount = await prisma.Candidate.count();
+    const loginActivityCount = await prisma.LoginActivity.count();
 
     res.json({
       stats: {
@@ -33,7 +33,7 @@ router.get("/dashboard-stats", authMiddleware, isAdmin, async (req, res) => {
    ========================================================= */
 router.get("/department-overview", authMiddleware, isAdmin, async (req, res) => {
   try {
-    const users = await prisma.user.findMany({
+    const users = await prisma.User.findMany({
       select: { department: true },
     });
 
@@ -54,7 +54,7 @@ router.get("/department-overview", authMiddleware, isAdmin, async (req, res) => 
    ========================================================= */
 router.get("/recent-employees", authMiddleware, isAdmin, async (req, res) => {
   try {
-    const recent = await prisma.user.findMany({
+    const recent = await prisma.User.findMany({
       orderBy: { createdAt: "desc" },
       take: 5,
       select: { id: true, name: true, email: true, role: true, department: true, createdAt: true },
@@ -75,7 +75,7 @@ router.get("/activity/daily", authMiddleware, isAdmin, async (req, res) => {
     const now = new Date();
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     
-    const activities = await prisma.loginActivity.findMany({
+    const activities = await prisma.LoginActivity.findMany({
       where: {
         timestamp: {
           gte: yesterday,
@@ -123,7 +123,7 @@ router.get("/activity/weekly", authMiddleware, isAdmin, async (req, res) => {
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
-    const activities = await prisma.loginActivity.findMany({
+    const activities = await prisma.LoginActivity.findMany({
       where: {
         timestamp: {
           gte: weekAgo,
@@ -179,7 +179,7 @@ router.post("/users/bulk-import", authMiddleware, isAdmin, async (req, res) => {
     // Process users one by one to track success/failure
     for (const user of users) {
       try {
-        const createdUser = await prisma.user.create({
+        const createdUser = await prisma.User.create({
           data: {
             name: user.name,
             email: user.email,
@@ -198,7 +198,7 @@ router.post("/users/bulk-import", authMiddleware, isAdmin, async (req, res) => {
     }
 
     // Log import with correct field names
-    await prisma.importJob.create({
+    await prisma.ImportJob.create({
       data: {
         fileName: fileName || `bulk_import_${new Date().toISOString().split('T')[0]}.csv`,
         totalRecords: users.length,
@@ -227,7 +227,7 @@ router.post("/users/bulk-import", authMiddleware, isAdmin, async (req, res) => {
    ========================================================= */
 router.get("/users/export", authMiddleware, isAdmin, async (req, res) => {
   try {
-    const users = await prisma.user.findMany({
+    const users = await prisma.User.findMany({
       select: { 
         id: true, 
         name: true, 
@@ -255,7 +255,7 @@ router.get("/users/export", authMiddleware, isAdmin, async (req, res) => {
     }));
 
     // Log export job
-    await prisma.exportJob.create({
+    await prisma.ExportJob.create({
       data: { 
         exportedById: req.user.id, 
         fileName: `users_export_${new Date().toISOString().split('T')[0]}.csv`,
@@ -276,7 +276,7 @@ router.get("/users/export", authMiddleware, isAdmin, async (req, res) => {
    ========================================================= */
 router.get("/history/imports", authMiddleware, isAdmin, async (req, res) => {
   try {
-    const imports = await prisma.importJob.findMany({
+    const imports = await prisma.ImportJob.findMany({
       orderBy: { createdAt: "desc" },
       take: 10,
       include: {
@@ -315,7 +315,7 @@ router.get("/history/imports", authMiddleware, isAdmin, async (req, res) => {
    ========================================================= */
 router.get("/history/exports", authMiddleware, isAdmin, async (req, res) => {
   try {
-    const exports = await prisma.exportJob.findMany({
+    const exports = await prisma.ExportJob.findMany({
       orderBy: { createdAt: "desc" },
       take: 10,
       include: {

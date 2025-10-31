@@ -22,7 +22,7 @@ router.get("/", async (req, res) => {
     }
     if (department) whereClause.department = department;
 
-    const jobs = await prisma.job.findMany({
+    const jobs = await prisma.Job.findMany({
       where: whereClause,
       include: {
         postedBy: {
@@ -66,7 +66,7 @@ router.get("/", async (req, res) => {
       }
     }));
 
-    const totalCount = await prisma.job.count({ where: whereClause });
+    const totalCount = await prisma.Job.count({ where: whereClause });
 
     res.json({
       jobs: jobsWithStats,
@@ -84,7 +84,7 @@ router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
     
-    const job = await prisma.job.findUnique({
+    const job = await prisma.Job.findUnique({
       where: { id: parseInt(id) },
       include: {
         postedBy: {
@@ -157,7 +157,7 @@ router.post("/", authMiddleware, isAdminOrHR, async (req, res) => {
       postedById: req.user.id
     };
 
-    const job = await prisma.job.create({
+    const job = await prisma.Job.create({
       data: jobData,
       include: {
         postedBy: {
@@ -181,7 +181,7 @@ router.post("/", authMiddleware, isAdminOrHR, async (req, res) => {
 router.put("/:id", authMiddleware, isAdminOrHR, async (req, res) => {
   const { id } = req.params;
   try {
-    const updated = await prisma.job.update({
+    const updated = await prisma.Job.update({
       where: { id: parseInt(id) },
       data: req.body,
       include: {
@@ -210,7 +210,7 @@ router.put("/:id", authMiddleware, isAdminOrHR, async (req, res) => {
 router.put("/:id/status", authMiddleware, isAdminOrHR, async (req, res) => {
   const { id } = req.params;
   try {
-    const job = await prisma.job.update({
+    const job = await prisma.Job.update({
       where: { id: parseInt(id) },
       data: { status: req.body.status },
       include: {
@@ -238,11 +238,11 @@ router.get("/stats/overview", authMiddleware, isAdminOrHR, async (req, res) => {
       totalApplications,
       recentApplications
     ] = await Promise.all([
-      prisma.job.count(),
-      prisma.job.count({ where: { status: 'OPEN' } }),
-      prisma.job.count({ where: { status: 'CLOSED' } }),
-      prisma.candidate.count(),
-      prisma.candidate.count({
+      prisma.Job.count(),
+      prisma.Job.count({ where: { status: 'OPEN' } }),
+      prisma.Job.count({ where: { status: 'CLOSED' } }),
+      prisma.Candidate.count(),
+      prisma.Candidate.count({
         where: {
           dateApplied: {
             gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
@@ -252,7 +252,7 @@ router.get("/stats/overview", authMiddleware, isAdminOrHR, async (req, res) => {
     ]);
 
     // Get top performing jobs (most applications)
-    const topJobs = await prisma.job.findMany({
+    const topJobs = await prisma.Job.findMany({
       include: {
         _count: {
           select: {
@@ -292,7 +292,7 @@ router.post("/:id/duplicate", authMiddleware, isAdminOrHR, async (req, res) => {
   const { id } = req.params;
   try {
     // Get the original job
-    const originalJob = await prisma.job.findUnique({
+    const originalJob = await prisma.Job.findUnique({
       where: { id: parseInt(id) }
     });
 
@@ -316,7 +316,7 @@ router.post("/:id/duplicate", authMiddleware, isAdminOrHR, async (req, res) => {
       datePosted: new Date()
     };
 
-    const duplicatedJob = await prisma.job.create({
+    const duplicatedJob = await prisma.Job.create({
       data: duplicateJobData,
       include: {
         postedBy: {
@@ -358,7 +358,7 @@ router.post("/:id/duplicate", authMiddleware, isAdminOrHR, async (req, res) => {
 router.delete("/:id", authMiddleware, isAdminOrHR, async (req, res) => {
   const { id } = req.params;
   try {
-    await prisma.job.update({
+    await prisma.Job.update({
       where: { id: parseInt(id) },
       data: { archived: true },
     });

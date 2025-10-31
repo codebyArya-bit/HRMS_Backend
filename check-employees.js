@@ -6,7 +6,7 @@ async function checkEmployees() {
   try {
     console.log('Checking users with EMPLOYEE role...\n');
     
-    const employees = await prisma.user.findMany({
+    const employees = await prisma.User.findMany({
       where: {
         role: {
           name: 'EMPLOYEE'
@@ -28,7 +28,7 @@ async function checkEmployees() {
 
     // Also check all roles in the system
     console.log('\nAll roles in the system:');
-    const roles = await prisma.role.findMany();
+    const roles = await prisma.Role.findMany();
     roles.forEach(role => {
       console.log(`- ${role.name}: ${role.description}`);
     });

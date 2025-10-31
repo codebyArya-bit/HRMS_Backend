@@ -40,7 +40,7 @@ router.get('/directory', async (req, res) => {
     }
 
     const [employees, total] = await Promise.all([
-      prisma.user.findMany({
+      prisma.User.findMany({
         where: whereClause,
         skip: parseInt(skip),
         take: parseInt(limit),
@@ -63,7 +63,7 @@ router.get('/directory', async (req, res) => {
           name: 'asc'
         }
       }),
-      prisma.user.count({ where: whereClause })
+      prisma.User.count({ where: whereClause })
     ]);
 
     res.json({
@@ -117,7 +117,7 @@ router.get('/', authMiddleware, async (req, res) => {
     }
 
     const [employees, total] = await Promise.all([
-      prisma.user.findMany({
+      prisma.User.findMany({
         where: whereClause,
         skip: parseInt(skip),
         take: parseInt(limit),
@@ -136,7 +136,7 @@ router.get('/', authMiddleware, async (req, res) => {
           }
         }
       }),
-      prisma.user.count({ where: whereClause })
+      prisma.User.count({ where: whereClause })
     ]);
 
     res.json({
@@ -160,7 +160,7 @@ router.get('/:id', authMiddleware, canAccessUserData('id'), async (req, res) => 
     const { id } = req.params;
     const userRole = req.user.role?.name || req.user.role;
 
-    const employee = await prisma.user.findUnique({
+    const employee = await prisma.User.findUnique({
       where: { id },
       include: {
         role: {
@@ -216,7 +216,7 @@ router.post('/', authMiddleware, isAdminOrHR, async (req, res) => {
     }
 
     // Check if employee ID or email already exists
-    const existingEmployee = await prisma.user.findFirst({
+    const existingEmployee = await prisma.User.findFirst({
       where: {
         OR: [
           { employeeId },
@@ -234,7 +234,7 @@ router.post('/', authMiddleware, isAdminOrHR, async (req, res) => {
     }
 
     // Verify role exists
-    const role = await prisma.role.findUnique({
+    const role = await prisma.Role.findUnique({
       where: { id: roleId }
     });
 
@@ -246,7 +246,7 @@ router.post('/', authMiddleware, isAdminOrHR, async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create employee
-    const employee = await prisma.user.create({
+    const employee = await prisma.User.create({
       data: {
         employeeId,
         name,
@@ -323,7 +323,7 @@ router.put('/:id', authMiddleware, canAccessUserData('id'), async (req, res) => 
 
     // Check if email is being changed and if it already exists
     if (updateData.email) {
-      const existingUser = await prisma.user.findFirst({
+      const existingUser = await prisma.User.findFirst({
         where: {
           email: updateData.email,
           id: { not: id }
@@ -337,7 +337,7 @@ router.put('/:id', authMiddleware, canAccessUserData('id'), async (req, res) => 
 
     // Verify role exists if being updated
     if (updateData.roleId) {
-      const role = await prisma.role.findUnique({
+      const role = await prisma.Role.findUnique({
         where: { id: updateData.roleId }
       });
 
@@ -346,7 +346,7 @@ router.put('/:id', authMiddleware, canAccessUserData('id'), async (req, res) => 
       }
     }
 
-    const updatedEmployee = await prisma.user.update({
+    const updatedEmployee = await prisma.User.update({
       where: { id },
       data: updateData,
       include: {
@@ -381,7 +381,7 @@ router.delete('/:id', authMiddleware, hasRole('ADMIN'), async (req, res) => {
     const { id } = req.params;
 
     // Check if employee exists
-    const employee = await prisma.user.findUnique({
+    const employee = await prisma.User.findUnique({
       where: { id }
     });
 
@@ -394,7 +394,7 @@ router.delete('/:id', authMiddleware, hasRole('ADMIN'), async (req, res) => {
       return res.status(400).json({ error: 'Cannot delete your own account' });
     }
 
-    await prisma.user.delete({
+    await prisma.User.delete({
       where: { id }
     });
 
@@ -408,6 +408,64 @@ router.delete('/:id', authMiddleware, hasRole('ADMIN'), async (req, res) => {
   }
 });
 
+// Bulk update employees (Admin/HR only)
+router.put('/bulk-update', authMiddleware, isAdminOrHR, async (req, res) => {
+  try {
+    const { employeeIds, updateData } = req.body;
+
+    if (!employeeIds || !Array.isArray(employeeIds) || employeeIds.length === 0) {
+      return res.status(400).json({ error: 'Employee IDs array is required' });
+    }
+
+    if (!updateData || Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: 'Update data is required' });
+    }
+
+    // Validate that only allowed fields are being updated
+    const allowedFields = ['department', 'position', 'status', 'roleId'];
+    const updateFields = Object.keys(updateData);
+    const invalidFields = updateFields.filter(field => !allowedFields.includes(field));
+    
+    if (invalidFields.length > 0) {
+      return res.status(400).json({ 
+        error: `Invalid fields for bulk update: ${invalidFields.join(', ')}` 
+      });
+    }
+
+    // If roleId is being updated, verify it exists
+    if (updateData.roleId) {
+      const role = await prisma.Role.findUnique({
+        where: { id: updateData.roleId }
+      });
+
+      if (!role) {
+        return res.status(400).json({ error: 'Invalid role ID' });
+      }
+    }
+
+    // Perform bulk update
+    const result = await prisma.User.updateMany({
+      where: {
+        id: { in: employeeIds }
+      },
+      data: updateData
+    });
+
+    // Clear permissions cache for all updated users if role was changed
+    if (updateData.roleId) {
+      employeeIds.forEach(id => clearPermissionsCache(id));
+    }
+
+    res.json({
+      message: `Successfully updated ${result.count} employees`,
+      updatedCount: result.count
+    });
+  } catch (error) {
+    console.error('Bulk update employees error:', error);
+    res.status(500).json({ error: 'Failed to bulk update employees' });
+  }
+});
+
 // Get employee statistics (Admin/HR only)
 router.get('/stats/overview', authMiddleware, isAdminOrHR, async (req, res) => {
   try {
@@ -418,18 +476,18 @@ router.get('/stats/overview', authMiddleware, isAdminOrHR, async (req, res) => {
       roleStats,
       recentHires
     ] = await Promise.all([
-      prisma.user.count(),
-      prisma.user.count(), // All users are considered active
-      prisma.user.groupBy({
+      prisma.User.count(),
+      prisma.User.count(), // All users are considered active
+      prisma.User.groupBy({
         by: ['department'],
         _count: { department: true },
         orderBy: { _count: { department: 'desc' } }
       }),
-      prisma.user.groupBy({
+      prisma.User.groupBy({
         by: ['roleId'],
         _count: { roleId: true }
       }),
-      prisma.user.findMany({
+      prisma.User.findMany({
         where: {
           joinDate: {
             gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // Last 30 days
@@ -450,7 +508,7 @@ router.get('/stats/overview', authMiddleware, isAdminOrHR, async (req, res) => {
     ]);
 
     // Get role information separately
-    const roles = await prisma.role.findMany({
+    const roles = await prisma.Role.findMany({
       select: {
         id: true,
         name: true,
@@ -497,7 +555,7 @@ router.put('/:id/password', authMiddleware, canAccessUserData('id'), async (req,
 
     // If changing own password, verify current password
     if (isOwnProfile && currentPassword) {
-      const user = await prisma.user.findUnique({
+      const user = await prisma.User.findUnique({
         where: { id }
       });
 
@@ -514,7 +572,7 @@ router.put('/:id/password', authMiddleware, canAccessUserData('id'), async (req,
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    await prisma.user.update({
+    await prisma.User.update({
       where: { id },
       data: { password: hashedPassword }
     });
