@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: hrms-backend
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:./production.db
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: PORT
+        value: 10000
+    disk:
+      name: sqlite-disk
+      mountPath: /opt/render/project/src
+      sizeGB: 1

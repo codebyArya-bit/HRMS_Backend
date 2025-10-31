@@ -9,7 +9,14 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "start": "node server.js",
+    "build": "npx prisma generate",
+    "postinstall": "npx prisma generate",
+    "db:migrate": "npx prisma migrate deploy",
+    "db:seed": "npx prisma db seed",
+    "db:reset": "npx prisma migrate reset --force",
+    "db:studio": "npx prisma studio"
   },
   "keywords": [],
   "author": "",
