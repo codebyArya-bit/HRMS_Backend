@@ -58,31 +58,52 @@ async function initializeDatabase() {
     try {
       console.log("🔄 Initializing in-memory database...");
       
-      // First, deploy migrations to create tables
-      console.log("📋 Deploying database migrations...");
+      // First, push schema to create tables (better for in-memory DB)
+      console.log("📋 Pushing database schema...");
       const { execSync } = await import('child_process');
-      execSync('npx prisma migrate deploy', { stdio: 'inherit' });
-      console.log("✅ Database migrations deployed");
+      execSync('npx prisma db push --force-reset', { stdio: 'inherit' });
+      console.log("✅ Database schema pushed");
       
       // Run migrations
       await prisma.$executeRaw`PRAGMA foreign_keys = ON`;
+      
+      // Create default roles first
+      console.log("🔑 Creating default roles...");
+      const roles = [
+        { name: 'ADMIN', description: 'System Administrator', color: 'red' },
+        { name: 'HR', description: 'Human Resources', color: 'blue' },
+        { name: 'MANAGER', description: 'Department Manager', color: 'green' },
+        { name: 'EMPLOYEE', description: 'Regular Employee', color: 'gray' }
+      ];
+      
+      for (const roleData of roles) {
+        await prisma.role.upsert({
+          where: { name: roleData.name },
+          update: {},
+          create: roleData
+        });
+      }
+      console.log("✅ Default roles created");
+      
+      // Get admin role ID
+      const adminRole = await prisma.role.findUnique({
+        where: { name: 'ADMIN' }
+      });
       
       // Create basic admin user if not exists
       const adminExists = await prisma.user.findFirst({
         where: { email: 'admin@hrms.com' }
       });
       
-      if (!adminExists) {
+      if (!adminExists && adminRole) {
         console.log("👤 Creating default admin user...");
         await prisma.user.create({
           data: {
             email: 'admin@hrms.com',
             password: '$2b$10$rQZ9QmjytWIHq8fJvXNUyeJ.Hn8pGpxRjGJVwV8FGV4.QmjytWIHq8', // 'admin123'
-            firstName: 'Admin',
-            lastName: 'User',
-            role: 'ADMIN',
-            isActive: true,
-            isEmailVerified: true
+            name: 'Admin User',
+            roleId: adminRole.id,
+            department: 'IT'
           }
         });
         console.log("✅ Default admin user created");
