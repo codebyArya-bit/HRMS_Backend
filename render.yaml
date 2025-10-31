@@ -4,7 +4,7 @@ services:
     env: node
     plan: free
     buildCommand: npm install && npm run build && npm run db:migrate && npm run db:seed
-    startCommand: npm start
+    startCommand: node server.js
     envVars:
       - key: NODE_ENV
         value: production
