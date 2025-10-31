@@ -59,13 +59,42 @@ async function initializeDatabase() {
       console.log("🔄 Initializing in-memory database...");
       
       // First, push schema to create tables (better for in-memory DB)
-      console.log("📋 Pushing database schema...");
-      const { execSync } = await import('child_process');
-      execSync('npx prisma db push --force-reset', { stdio: 'inherit' });
+      console.log("📊 Pushing database schema...");
+      await execAsync('npx prisma db push --force-reset');
       console.log("✅ Database schema pushed");
       
-      // Run migrations
-      await prisma.$executeRaw`PRAGMA foreign_keys = ON`;
+      // Enable foreign keys for SQLite
+      await prisma.$executeRaw`PRAGMA foreign_keys = ON;`;
+      
+      // Ensure tables exist with explicit creation (fallback for in-memory DB)
+      console.log("🔧 Ensuring tables exist...");
+      try {
+        // Create roles table if it doesn't exist
+        await prisma.$executeRaw`
+          CREATE TABLE IF NOT EXISTS roles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE NOT NULL,
+            description TEXT,
+            color TEXT DEFAULT 'gray',
+            createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+            status TEXT DEFAULT 'active'
+          );
+        `;
+        
+        // Create permissions table if it doesn't exist
+        await prisma.$executeRaw`
+          CREATE TABLE IF NOT EXISTS permissions (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            category TEXT NOT NULL,
+            description TEXT
+          );
+        `;
+        
+        console.log("✅ Tables ensured to exist");
+      } catch (tableError) {
+        console.log("⚠️ Table creation warning (may already exist):", tableError.message);
+      }
       
       // Create default roles first
       console.log("🔑 Creating default roles...");
