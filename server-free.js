@@ -134,7 +134,7 @@ async function initializeDatabase() {
       ];
       
       for (const roleData of roles) {
-        await prisma.role.upsert({
+        await prisma.Role.upsert({
           where: { name: roleData.name },
           update: {},
           create: roleData
@@ -143,18 +143,18 @@ async function initializeDatabase() {
       console.log("✅ Default roles created");
       
       // Get admin role ID
-      const adminRole = await prisma.role.findUnique({
+      const adminRole = await prisma.Role.findUnique({
         where: { name: 'ADMIN' }
       });
       
       // Create basic admin user if not exists
-      const adminExists = await prisma.user.findFirst({
+      const adminExists = await prisma.User.findFirst({
         where: { email: 'admin@hrms.com' }
       });
       
       if (!adminExists && adminRole) {
         console.log("👤 Creating default admin user...");
-        await prisma.user.create({
+        await prisma.User.create({
           data: {
             email: 'admin@hrms.com',
             password: '$2b$10$rQZ9QmjytWIHq8fJvXNUyeJ.Hn8pGpxRjGJVwV8FGV4.QmjytWIHq8', // 'admin123'
