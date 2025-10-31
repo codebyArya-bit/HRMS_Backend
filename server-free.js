@@ -96,6 +96,29 @@ async function initializeDatabase() {
           );
         `;
         
+        // Create User table if it doesn't exist
+        await prisma.$executeRaw`
+          CREATE TABLE IF NOT EXISTS User (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            employeeId TEXT UNIQUE,
+            name TEXT NOT NULL,
+            password TEXT NOT NULL,
+            department TEXT,
+            avatar TEXT,
+            joinDate DATETIME DEFAULT CURRENT_TIMESTAMP,
+            roleId INTEGER NOT NULL,
+            twoFactorEnabled BOOLEAN DEFAULT 0,
+            twoFactorSecret TEXT,
+            twoFactorMethod TEXT,
+            backupCodes TEXT,
+            twoFactorSetupDate DATETIME,
+            twoFactorLastUsed DATETIME,
+            phone TEXT,
+            FOREIGN KEY (roleId) REFERENCES roles(id)
+          );
+        `;
+        
         console.log("✅ Tables ensured to exist");
       } catch (tableError) {
         console.log("⚠️ Table creation warning (may already exist):", tableError.message);
