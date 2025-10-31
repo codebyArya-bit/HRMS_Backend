@@ -16,3 +16,5 @@ services:
         sync: false
       - key: PORT
         value: 10000
+      - key: DATABASE_URL
+        value: postgresql://hrms_user:A4NckVb8EnoNQRmNh0VF1YaNWFT7bxof@dpg-d42etuodl3ps7398tqq0-a.oregon-postgres.render.com/hrms_db_355c
