@@ -58,6 +58,12 @@ async function initializeDatabase() {
     try {
       console.log("🔄 Initializing in-memory database...");
       
+      // First, deploy migrations to create tables
+      console.log("📋 Deploying database migrations...");
+      const { execSync } = await import('child_process');
+      execSync('npx prisma migrate deploy', { stdio: 'inherit' });
+      console.log("✅ Database migrations deployed");
+      
       // Run migrations
       await prisma.$executeRaw`PRAGMA foreign_keys = ON`;
       
