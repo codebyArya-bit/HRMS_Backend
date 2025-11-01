@@ -24,11 +24,18 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3001;
 
-// Configure CORS for production
+// Configure CORS for production and development
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL, 'https://your-frontend.vercel.app']
-    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:3001'],
+    ? [
+        process.env.FRONTEND_URL, 
+        'https://your-frontend.vercel.app',
+        'http://localhost:5173',  // Allow local dev server
+        'http://localhost:5174',  // Allow local dev server (Vite fallback port)
+        'http://localhost:3000',  // Allow local dev server
+        'http://localhost:3001'   // Allow local dev server
+      ].filter(Boolean)  // Remove undefined values
+    : ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:3001'],
   credentials: true,
   optionsSuccessStatus: 200
 };
